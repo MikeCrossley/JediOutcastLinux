@@ -28,6 +28,10 @@ if(NOT DEFINED FORCE_STATIC_OCULUS_SDK)
     set(FORCE_STATIC_OCULUS_SDK 0)
 endif()
 
+if(NOT DEFINED USE_OPENVR_SDK)
+    set(USE_OPENVR_SDK 1)
+endif()
+
 if(NOT DEFINED USE_OPENHMD)
     set(USE_OPENHMD 0)
 endif()
@@ -39,7 +43,7 @@ endif()
 # doesn't work without SDL2 at the moment
 set(USE_SDL2 1)
 
-message("Used Settings: Ovr0.5=${USE_OCULUS_SDK_0.5} Ovr0.8=${USE_OCULUS_SDK_0.8} Ovr1=${USE_OCULUS_SDK_1} OvrStatic=${FORCE_STATIC_OCULUS_SDK} OpenHMD=${USE_OPENHMD}")
+message("Used Settings: Ovr0.5=${USE_OCULUS_SDK_0.5} Ovr0.8=${USE_OCULUS_SDK_0.8} Ovr1=${USE_OCULUS_SDK_1} OpenVR=${USE_OPENVR_SDK} OvrStatic=${FORCE_STATIC_OCULUS_SDK} OpenHMD=${USE_OPENHMD}")
 
 set(PLATFORM_WIN32 0)
 set(PLATFORM_MACOS 0)
@@ -162,6 +166,25 @@ set(SSF_HMD_QUAKE3
     code/hmd/Quake3/ViewParamsHmdUtility.cpp
 )
 
+if(USE_OPENVR_SDK)
+    set(CUSTOM_COMPILE_FLAGS_ALL "${CUSTOM_COMPILE_FLAGS_ALL} -DUSE_VR -DUSE_OPENVR")
+	
+	include_directories("${EXTERNAL_LIB_PATH}/OpenVR/headers")
+	
+	if(PLATFORM_WIN32)
+		set(EXTRA_LIBS ${EXTRA_LIBS} debug ${EXTERNAL_LIB_PATH}/OpenVR/lib/win32/openvr_api.lib)
+		set(EXTRA_LIBS ${EXTRA_LIBS} optimized ${EXTERNAL_LIB_PATH}/OpenVR/lib/win32/openvr_api.lib)
+	endif()
+		
+	set(SSF_HMD_OPENVR_1 ${SSF_HMD_OPENVR_1}
+        code/hmd/OpenVR/HmdDeviceOpenVRSdk.h
+        code/hmd/OpenVR/HmdDeviceOpenVRSdk.cpp
+        code/hmd/OpenVR/HmdRendererOpenVRSdk.h
+        code/hmd/OpenVR/HmdRendererOpenVRSdk.cpp
+	)	
+	
+    source_group(hmd\\OpenVR FILES ${SSF_HMD_OPENVR_1})
+endif()
 
 if(USE_OCULUS_SDK_1)
     set(SSF_HMD_OCULUS_1 ${SSF_HMD_OCULUS_1}
@@ -406,6 +429,7 @@ set(STARWARS_SOURCE_FILES
 	${SSF_HMD_OCULUS_0.5}
 	${SSF_HMD_OCULUS_0.8}
 	${SSF_HMD_OCULUS_1}
+	${SSF_HMD_OPENVR_1}
 )
 
 

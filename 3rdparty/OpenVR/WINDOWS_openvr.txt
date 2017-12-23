@@ -1,0 +1,7 @@
+WINDOWS and MACOS:
+
+Get the latest OpenVR version here:
+https://github.com/ValveSoftware/openvr/releases
+
+Extract the OpenVR sdk into this folder. No building is required.
+

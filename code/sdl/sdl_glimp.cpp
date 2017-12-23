@@ -889,6 +889,8 @@ void IN_ShutdownGameController( void )
 #ifdef USE_VR
 void InitHmdDevice()
 {
+	VID_Printf(PRINT_ALL, "Initializing Hmd Device!");
+
 	// try to create a hmd device
 	ClientHmd::Get()->SetDevice(NULL);
 	ClientHmd::Get()->SetRenderer(NULL);
@@ -912,6 +914,10 @@ void InitHmdDevice()
 		else if (hmdLibName == "mouse_dummy")
 		{
 			lib = FactoryHmdDevice::LIB_MOUSE_DUMMY;
+		}
+		else if (hmdLibName == "openvr")
+		{
+			lib = FactoryHmdDevice::LIB_OPENVR;
 		}
 	
 		cvar_t* pAllowDummyDevice = Cvar_Get ("hmd_allowdummydevice", "0", CVAR_ARCHIVE);
@@ -975,7 +981,7 @@ void GLimp_Init( void )
 		return;
 	}
 	
-#ifdef USE_VR	
+#ifdef USE_VR
 	InitHmdDevice();
 #endif
 
