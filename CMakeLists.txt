@@ -21,7 +21,7 @@ if(NOT DEFINED USE_OCULUS_SDK_0.8)
 endif()
 
 if(NOT DEFINED USE_OCULUS_SDK_1)
-    set(USE_OCULUS_SDK_1 1)
+    set(USE_OCULUS_SDK_1 0)
 endif()
 
 if(NOT DEFINED FORCE_STATIC_OCULUS_SDK)
@@ -181,6 +181,7 @@ if(USE_OPENVR_SDK)
         code/hmd/OpenVR/HmdDeviceOpenVRSdk.cpp
         code/hmd/OpenVR/HmdRendererOpenVRSdk.h
         code/hmd/OpenVR/HmdRendererOpenVRSdk.cpp
+        code/hmd/OpenVR/OpenVRHelper.h
 	)	
 	
     source_group(hmd\\OpenVR FILES ${SSF_HMD_OPENVR_1})

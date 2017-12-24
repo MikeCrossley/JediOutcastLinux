@@ -111,25 +111,15 @@ bool HmdDeviceOpenVRSdk::GetDisplayPos(int& rX, int& rY)
 bool HmdDeviceOpenVRSdk::GetDeviceResolution(int& rWidth, int& rHeight, bool& rIsRotated, bool& rIsExtendedMode)
 {
 	if (!mIsInitialized)
-    {
         return false;
-    }
 
-	uint32_t width = 0;
+	/*uint32_t width = 0;
 	uint32_t height = 0;
 
-	m_pVRSystem->GetRecommendedRenderTargetSize(&width, &height);
-
-	//rWidth = width;
-	//rHeight = height;
-
-	VID_Printf(PRINT_ALL, "%d %d", width, height);
+	m_pVRSystem->GetRecommendedRenderTargetSize(&width, &height);*/
 
 	rWidth = 1280;
 	rHeight = 720;
-
-	//rIsRotated = false;
-	//rIsExtendedMode = false;
 
     return true;
 }

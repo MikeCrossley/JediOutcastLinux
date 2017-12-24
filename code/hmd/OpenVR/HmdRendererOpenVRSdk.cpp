@@ -12,6 +12,8 @@
 #include <dwmapi.h>
 #endif
 
+#include "OpenVRHelper.h"
+
 #include "../../client/client.h"
 
 using namespace std;
@@ -21,7 +23,7 @@ HmdRendererOpenVRSdk::HmdRendererOpenVRSdk(HmdDeviceOpenVRSdk* pDevice)
 	: m_bIsInitialized(false)
 	, m_bStartedFrame(false)
 	, m_bStartedRendering(false)
-	, m_bUseMirrorTexture(false)
+	, m_ulOverlayHandle(vr::k_ulOverlayHandleInvalid)
     , mFrameStartTime(0)
     , mEyeId(-1)
     , mWindowWidth(0)
@@ -31,7 +33,6 @@ HmdRendererOpenVRSdk::HmdRendererOpenVRSdk(HmdDeviceOpenVRSdk* pDevice)
     , mGuiScale(0.5f)
     , mGuiOffsetFactorX(0)
     , mMeterToGameUnits(IHmdDevice::METER_TO_GAME)
-    , mAllowZooming(false)
     , mpDevice(pDevice)
     , mMenuStencilDepthBuffer(0)
     , mReadFBO(0)
@@ -48,21 +49,23 @@ HmdRendererOpenVRSdk::~HmdRendererOpenVRSdk()
 bool HmdRendererOpenVRSdk::Init(int windowWidth, int windowHeight, PlatformInfo platformInfo)
 {
     if (!mpDevice)
-    {
         return false;
-    }
 
-    PreparePlatform();
+	PreparePlatform();
 
     mWindowWidth = windowWidth;
     mWindowHeight = windowHeight;
 
-	int nWidth, nHeight; bool bA;
+	uint32_t nWidth, nHeight;
 
-	mRenderWidth = mpDevice->GetDeviceResolution(nWidth, nHeight, bA, bA);
+	//mpDevice->GetDeviceResolution(nWidth, nHeight, bA, bA);
 
-	mRenderWidth = nWidth;
-    mRenderHeight = nHeight;
+	mpDevice->GetHMDSystem()->GetRecommendedRenderTargetSize(&nWidth, &nHeight);
+
+	int nSuperSampling = 1;
+
+	mRenderWidth = nWidth * 2 * nSuperSampling;
+    mRenderHeight = nHeight * nSuperSampling;
     
 	if (!vr::VRCompositor())
 	{
@@ -100,6 +103,40 @@ bool HmdRendererOpenVRSdk::Init(int windowWidth, int windowHeight, PlatformInfo 
 	qglBindTexture(GL_TEXTURE_2D, mMenuStencilDepthBuffer);
 	qglTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, mRenderWidth, mRenderHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
 
+	if (vr::VROverlay())
+	{
+		vr::VROverlayError overlayError = vr::VROverlay()->CreateOverlay("Key", "Menu", &m_ulOverlayHandle);
+		if (overlayError != vr::VROverlayError_None)
+		{
+			VID_Printf(PRINT_ALL, "[HMD][OpenVR] Failed to create overlay!\n");
+		}
+		else
+		{
+			vr::HmdMatrix34_t mOffsetMatrix = CreateMatrix34();
+
+			mOffsetMatrix.m[0][3] = 0.f;
+			mOffsetMatrix.m[1][3] = 1.35f;
+			mOffsetMatrix.m[2][3] = -1.1f;
+
+			VID_Printf(PRINT_ALL, "MATRIX:\n%f %f %f\n%f %f %f\n%f %f %f\n%f %f %f", 
+				mOffsetMatrix.m[0][0], mOffsetMatrix.m[1][0], mOffsetMatrix.m[2][0],
+				mOffsetMatrix.m[0][1], mOffsetMatrix.m[1][1], mOffsetMatrix.m[2][1],
+				mOffsetMatrix.m[0][2], mOffsetMatrix.m[1][2], mOffsetMatrix.m[2][2],
+				mOffsetMatrix.m[0][3], mOffsetMatrix.m[1][3], mOffsetMatrix.m[2][3]);
+
+			vr::VROverlay()->SetOverlayWidthInMeters(m_ulOverlayHandle, 1.5f);
+			vr::VROverlay()->SetOverlayInputMethod(m_ulOverlayHandle, vr::VROverlayInputMethod_Mouse);
+			vr::VROverlay()->SetOverlayTransformAbsolute(m_ulOverlayHandle, vr::VRCompositor()->GetTrackingSpace(), &mOffsetMatrix);
+
+			vr::Texture_t menuTexture = { (void*)mMenuTextureSet, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
+			vr::VROverlay()->SetOverlayTexture(m_ulOverlayHandle, &menuTexture);
+
+			vr::VROverlayError error = vr::VROverlay()->ShowOverlay(m_ulOverlayHandle);
+
+			VID_Printf(PRINT_ALL, "[HMD][OpenVR] OpenVR Overlay Initialized!\n");
+		}
+	}
+
 	m_bStartedRendering = false;
 	m_bIsInitialized = true;
 
@@ -108,15 +145,22 @@ bool HmdRendererOpenVRSdk::Init(int windowWidth, int windowHeight, PlatformInfo 
 
 void HmdRendererOpenVRSdk::Shutdown()
 {
-	if (!m_bIsInitialized) return;
+	if (!m_bIsInitialized)
+		return;
+
+	VID_Printf(PRINT_ALL, "\n\n\nSHUTDOWN\n\n\n");
 
     for (int i = 0; i < FBO_COUNT; i++)
     {
         qglDeleteFramebuffers(1, &mFboInfos[i].Fbo);
-    }
+		qglDeleteTextures(1, &mEyeTextureSet[i]);
+	}
 
     qglDeleteFramebuffers(1, &mReadFBO);
     mReadFBO = 0;
+
+
+	m_bIsInitialized = false;
 }
 
 bool HmdRendererOpenVRSdk::CreateTextureSwapChain(int nWidth, int nHeight, GLuint* Texture)
@@ -155,7 +199,7 @@ void HmdRendererOpenVRSdk::StartFrame()
 
 void HmdRendererOpenVRSdk::BeginRenderingForEye(bool leftEye)
 {
-	if (!m_bStartedFrame)
+	if (!m_bIsInitialized || !m_bStartedFrame)
 		return;
 
 	int fboId = 0;
@@ -177,20 +221,30 @@ void HmdRendererOpenVRSdk::BeginRenderingForEye(bool leftEye)
 
 		qglDisable(GL_FRAMEBUFFER_SRGB);
 
+		vr::VRCompositor()->WaitGetPoses(m_rTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0);
+
+		for (int nDevice = 0; nDevice < vr::k_unMaxTrackedDeviceCount; ++nDevice)
+		{
+			if (m_rTrackedDevicePose[nDevice].bPoseIsValid)
+			{
+				m_rmat4DevicePose[nDevice] = m_rTrackedDevicePose[nDevice].mDeviceToAbsoluteTracking;
+			}
+		}
+
 		for (int i = 0; i < FBO_COUNT; i++)
 		{
 			qglBindFramebuffer(GL_FRAMEBUFFER, mFboInfos[i].Fbo);
 			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mEyeTextureSet[i], 0);
 			qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, mEyeStencilBuffer[i], 0);
 
-			//RenderTool::ClearFBO(mFboInfos[i]);
+			RenderTool::ClearFBO(mFboInfos[i]);
 		}
 
 		qglBindFramebuffer(GL_FRAMEBUFFER, mFboMenuInfo.Fbo);
 		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mMenuTextureSet, 0);
 		qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, mMenuStencilDepthBuffer, 0);
 
-		//RenderTool::ClearFBO(mFboMenuInfo);
+		RenderTool::ClearFBO(mFboMenuInfo);
 	}
 
 	// Bind framebuffer
@@ -215,6 +269,7 @@ void HmdRendererOpenVRSdk::BeginRenderingForEye(bool leftEye)
 
 void HmdRendererOpenVRSdk::EndFrame()
 {
+	// Temporary to stop crashing on load screens
 	cvar_t* pHmdEnabled = Cvar_Get("hmd_test", "0", CVAR_TEMP);
 	if (pHmdEnabled->integer == 0)
 		return;
@@ -234,14 +289,15 @@ void HmdRendererOpenVRSdk::EndFrame()
 		qglDisable(GL_STENCIL_TEST);
 		qglBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		vr::VRCompositor()->WaitGetPoses(m_rTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0);
-
-		for (int nDevice = 0; nDevice < vr::k_unMaxTrackedDeviceCount; ++nDevice)
+		if (mCurrentHmdMode == MENU_QUAD_WORLDPOS)
 		{
-			if (m_rTrackedDevicePose[nDevice].bPoseIsValid)
-			{
-				m_rmat4DevicePose[nDevice] = m_rTrackedDevicePose[nDevice].mDeviceToAbsoluteTracking;
-			}
+			vr::Texture_t menuTexture = { (void*)mMenuTextureSet, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
+			vr::VROverlay()->SetOverlayTexture(m_ulOverlayHandle, &menuTexture);
+			vr::VROverlay()->ShowOverlay(m_ulOverlayHandle);
+		}
+		else
+		{
+			vr::VROverlay()->HideOverlay(m_ulOverlayHandle);
 		}
 
 		vr::Texture_t leftEyeTexture = { (void*)mEyeTextureSet[0], vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
@@ -254,21 +310,6 @@ void HmdRendererOpenVRSdk::EndFrame()
 		qglBindBuffer(GL_ARRAY_BUFFER, 0);
 		qglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		qglViewport(0, 0, mWindowWidth, mWindowHeight);
-
-		if (m_bUseMirrorTexture)
-		{
-			// Do the blt
-			qglBindFramebuffer(GL_READ_FRAMEBUFFER, mReadFBO);
-			qglBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-			qglDrawBuffer(GL_BACK);
-
-			qglBlitFramebuffer(0, mWindowHeight, mWindowWidth, 0,
-				0, 0, mWindowWidth, mWindowHeight,
-				GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-			qglBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-		}
 
 		m_bStartedFrame = false;
 		m_bStartedRendering = false;
@@ -301,12 +342,6 @@ bool HmdRendererOpenVRSdk::GetCustomProjectionMatrix(float* rProjectionMatrix, f
 {
 	if (!m_bIsInitialized)
 		return false;
-
-	float fovD = DEG2RAD(fov);
-	float fAspect = mRenderWidth / mRenderHeight;
-
-	//glm::mat4 perspMat = glm::perspective(fovD, 1.0f, zNear, zFar);
-	//memcpy(rProjectionMatrix, &perspMat[0][0], sizeof(float) * 16);
 
 	vr::HmdMatrix44_t projMatrix = mpDevice->GetHMDSystem()->GetProjectionMatrix((vr::EVREye)mEyeId, zNear, zFar);
 	ConvertMatrix(projMatrix, rProjectionMatrix);
@@ -429,14 +464,28 @@ bool HmdRendererOpenVRSdk::GetCustomViewMatrix(float* rViewMatrix, float& xPos, 
 
 bool HmdRendererOpenVRSdk::Get2DViewport(int& rX, int& rY, int& rW, int& rH)
 {
-	if (mCurrentHmdMode == MENU_QUAD_WORLDPOS || mCurrentHmdMode == GAMEWORLD_QUAD_WORLDPOS || mCurrentHmdMode == MENU_QUAD)
+	/*if (mCurrentHmdMode == MENU_QUAD_WORLDPOS || mCurrentHmdMode == GAMEWORLD_QUAD_WORLDPOS || mCurrentHmdMode == MENU_QUAD)
 	{
 		return true;
 	}
 
+	// shrink the gui for the HMD display
+	float aspect = 1.0f;
+
+	float guiScale = mGuiScale;
+
+	rW = mRenderWidth *guiScale;
+	rH = mRenderWidth *guiScale * aspect;
+
+	rX = (mRenderWidth - rW) / 2.0f;
+	int xOff = mGuiOffsetFactorX != 0 ? (mRenderWidth / mGuiOffsetFactorX) : 0;
+	xOff *= mEyeId == 0 ? 1 : -1;
+	rX += xOff;
+
+	rY = (mRenderHeight - rH) / 2;*/
+
 	rX = 0;
 	rY = 0;
-
 	rW = mRenderWidth;
 	rH = mRenderHeight;
 

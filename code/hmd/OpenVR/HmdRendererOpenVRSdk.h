@@ -79,10 +79,10 @@ private:
 
 	bool m_bStartedFrame;
 	bool m_bStartedRendering;
-	bool m_bUseMirrorTexture;
 
 	vr::TrackedDevicePose_t m_rTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 	vr::HmdMatrix34_t m_rmat4DevicePose[vr::k_unMaxTrackedDeviceCount];
+	vr::VROverlayHandle_t m_ulOverlayHandle;
 	//
 
     double mFrameStartTime;
@@ -98,8 +98,6 @@ private:
     float mGuiOffsetFactorX;
 
     float mMeterToGameUnits;
-
-    bool mAllowZooming;
 
 	HmdDeviceOpenVRSdk* mpDevice;
     

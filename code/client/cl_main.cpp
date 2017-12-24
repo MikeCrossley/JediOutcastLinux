@@ -1235,7 +1235,6 @@ void CL_Init( void ) {
 	Cvar_Set( "cl_running", "1" );
 
 	Com_Printf( "----- Client Initialization Complete -----\n" );
-	Com_Printf( "VR Test Build\n" );
 }
 
 

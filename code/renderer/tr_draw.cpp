@@ -20,6 +20,12 @@ Used for cinematics.
 // param 'bDirty' should be true 99% of the time
 void RE_StretchRaw (int x, int y, int w, int h, int cols, int rows, const byte *data, int iClient, qboolean bDirty ) 
 {
+	// VR :: Fixes crashes with load screens and cutscenes (some weird stuff with screen resolution investigate later)
+	#ifdef USE_OPENVR
+		return;
+	#endif
+	// ~VR
+
 	R_SyncRenderThread();
 
 //===========
