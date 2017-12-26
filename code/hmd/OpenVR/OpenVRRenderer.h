@@ -5,12 +5,11 @@
  *	OpenVR Extension by Michael Crossley
  */
 
-#ifndef HMDRENDEREROPENVRSDK_H
-#define HMDRENDEREROPENVRSDK_H
+#ifndef OPENVRRENDERER_H
+#define OPENVRRENDERER_H
 
 #include "../HmdRenderer/IHmdRenderer.h"
 #include "../../renderer/qgl.h"
-
 
 #include <openvr.h>
 #include <openvr_capi.h>
@@ -24,31 +23,22 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
-namespace OpenVRSDK
+namespace OpenVR
 {
-class HmdDeviceOpenVRSdk;
+class COpenVRDevice;
 
-struct FramebufferDesc
-{
-	GLuint m_nDepthBufferId;
-	GLuint m_nRenderTextureId;
-	GLuint m_nRenderFramebufferId;
-	GLuint m_nResolveTextureId;
-	GLuint m_nResolveFramebufferId;
-};
-
-class HmdRendererOpenVRSdk : public IHmdRenderer
+class COpenVRRenderer : public IHmdRenderer
 {
 public:
-	HmdRendererOpenVRSdk(HmdDeviceOpenVRSdk* pDevice);
-    virtual ~HmdRendererOpenVRSdk();
+	COpenVRRenderer(COpenVRDevice* pDevice);
+    virtual ~COpenVRRenderer();
 
     virtual bool Init(int windowWidth, int windowHeight, PlatformInfo platformInfo) override;
     virtual void Shutdown() override;
 
-    virtual std::string GetInfo() override;
+	virtual std::string GetInfo() override { return "OpenVRRenderer"; }
 
-    virtual bool HandlesSwap() override;
+	virtual bool HandlesSwap() override { return false; }
     virtual bool GetRenderResolution(int& rWidth, int& rHeight) override;
 
     virtual void StartFrame() override;
@@ -61,14 +51,15 @@ public:
     virtual bool Get2DViewport(int& rX, int& rY, int& rW, int& rH) override;
     virtual bool Get2DOrtho(double &rLeft, double &rRight, double &rBottom, double &rTop, double &rZNear, double &rZFar) override;
 
-    virtual void SetCurrentHmdMode(HmdMode mode) override;
+	virtual void SetCurrentHmdMode(HmdMode mode) override { mCurrentHmdMode = mode; }
     virtual bool HasQuadWorldPosSupport() override { return true; }
 protected:
 	bool CreateTextureSwapChain(int nWidth, int nHeight, GLuint* Texture);
 	void ConvertMatrix(const vr::HmdMatrix44_t& from, float* rTo);
-	vr::HmdQuaternion_t GetRotation(vr::HmdMatrix34_t matrix);
 
 private:
+	COpenVRDevice* m_pDevice;
+
     void PreparePlatform();
 
     static const int FBO_COUNT = 2;
@@ -81,12 +72,10 @@ private:
 	bool m_bStartedRendering;
 
 	vr::TrackedDevicePose_t m_rTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
-	vr::HmdMatrix34_t m_rmat4DevicePose[vr::k_unMaxTrackedDeviceCount];
 	vr::VROverlayHandle_t m_ulOverlayHandle;
 	//
 
-    double mFrameStartTime;
-    int mEyeId;
+	int mEyeId;
 
     int mWindowWidth;
     int mWindowHeight;
@@ -98,10 +87,6 @@ private:
     float mGuiOffsetFactorX;
 
     float mMeterToGameUnits;
-
-	HmdDeviceOpenVRSdk* mpDevice;
-    
-	FramebufferDesc frameBuffers[2];
 
 	GLuint mEyeTextureSet[2];
     GLuint mEyeStencilBuffer[2]; 

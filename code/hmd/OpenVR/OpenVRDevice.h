@@ -5,32 +5,33 @@
  *	OpenVR Extension by Michael Crossley
  */
 
-#ifndef HMDDEVICEOPENVRSDK_H
-#define HMDDEVICEOPENVRSDK_H
+#ifndef OPENVRDEVICE_H
+#define OPENVRDEVICE_H
 
 #include "../HmdDevice/IHmdDevice.h"
+#include "OpenVRTracking.h"
 
 #include <openvr.h>
 #include <openvr_capi.h>
 
-namespace OpenVRSDK
+namespace OpenVR
 {
-class HmdDeviceOpenVRSdk : public IHmdDevice
+class COpenVRDevice : public IHmdDevice
 {
 public:
 
-	HmdDeviceOpenVRSdk();
-    virtual ~HmdDeviceOpenVRSdk();
+	COpenVRDevice();
+	virtual ~COpenVRDevice() {};
 
     virtual bool Init(bool allowDummyDevice = false);
     virtual void Shutdown();
 
-    virtual std::string GetInfo();
+	virtual std::string GetInfo() { return "OpenVRDevice"; }
 
-    virtual bool HasDisplay();
+	virtual bool HasDisplay() { return m_bIsInitialized; }
     virtual bool HandlesControllerInput() { return true; }
-    virtual std::string GetDisplayDeviceName();
-    virtual bool GetDisplayPos(int& rX, int& rY);
+	virtual std::string GetDisplayDeviceName() { return ""; }
+	virtual bool GetDisplayPos(int& rX, int& rY) { return false; }
 
     virtual bool GetDeviceResolution(int& rWidth, int& rHeight, bool& rIsRotated, bool& rIsExtendedMode);
     virtual bool GetOrientationRad(float& rPitch, float& rYaw, float& rRoll);
@@ -40,25 +41,18 @@ public:
     virtual bool HasHand(bool rightHand);
     virtual void Recenter();
 
-    bool IsDebugHmd() { return mUsingDebugHmd; }
-
-	vr::IVRSystem* GetHMDSystem() { return m_pVRSystem;	};
+	vr::IVRSystem* GetHMDSystem() { return m_pVRSystem;	}
+	COpenVRTracking* GetTrackedDevices() { return m_pTrackedDevices; }
 
 private:
     // disable copy constructor
-	HmdDeviceOpenVRSdk(const HmdDeviceOpenVRSdk&);
-	HmdDeviceOpenVRSdk& operator=(const HmdDeviceOpenVRSdk&);
+	COpenVRDevice(const COpenVRDevice&);
+	COpenVRDevice& operator=(const COpenVRDevice&);
 
-    void ConvertQuatToEuler(const float* quat, float& rYaw, float& rPitch, float& rRoll);
-    int GetCpuCount();
-    
-    bool mIsInitialized;
-    bool mUsingDebugHmd;
-    bool mPositionTrackingEnabled;
-    bool mIsRotated;
+    bool m_bIsInitialized;
+    bool m_bPositionTrackingEnabled;
 
-
-    std::string mInfo;
+	COpenVRTracking* m_pTrackedDevices;
 
 	vr::IVRSystem* m_pVRSystem;
 };

@@ -1,6 +1,8 @@
-#include "HmdRendererOpenVRSdk.h"
+#include "OpenVRRenderer.h"
+
+#include "OpenVRDevice.h"
+
 #include "../../renderer/tr_local.h"
-#include "HmdDeviceOpenVRSdk.h"
 #include "../HmdRenderer/PlatformInfo.h"
 
 #include <math.h>
@@ -16,15 +18,13 @@
 
 #include "../../client/client.h"
 
-using namespace std;
-using namespace OpenVRSDK;
+using namespace OpenVR;
 
-HmdRendererOpenVRSdk::HmdRendererOpenVRSdk(HmdDeviceOpenVRSdk* pDevice)
+COpenVRRenderer::COpenVRRenderer(COpenVRDevice* pDevice)
 	: m_bIsInitialized(false)
 	, m_bStartedFrame(false)
 	, m_bStartedRendering(false)
 	, m_ulOverlayHandle(vr::k_ulOverlayHandleInvalid)
-    , mFrameStartTime(0)
     , mEyeId(-1)
     , mWindowWidth(0)
     , mWindowHeight(0)
@@ -33,7 +33,7 @@ HmdRendererOpenVRSdk::HmdRendererOpenVRSdk(HmdDeviceOpenVRSdk* pDevice)
     , mGuiScale(0.5f)
     , mGuiOffsetFactorX(0)
     , mMeterToGameUnits(IHmdDevice::METER_TO_GAME)
-    , mpDevice(pDevice)
+    , m_pDevice(pDevice)
     , mMenuStencilDepthBuffer(0)
     , mReadFBO(0)
     , mCurrentHmdMode(GAMEWORLD)
@@ -41,14 +41,14 @@ HmdRendererOpenVRSdk::HmdRendererOpenVRSdk(HmdDeviceOpenVRSdk* pDevice)
 
 }
 
-HmdRendererOpenVRSdk::~HmdRendererOpenVRSdk()
+COpenVRRenderer::~COpenVRRenderer()
 {
 
 }
 
-bool HmdRendererOpenVRSdk::Init(int windowWidth, int windowHeight, PlatformInfo platformInfo)
+bool COpenVRRenderer::Init(int windowWidth, int windowHeight, PlatformInfo platformInfo)
 {
-    if (!mpDevice)
+    if (!m_pDevice)
         return false;
 
 	PreparePlatform();
@@ -58,9 +58,9 @@ bool HmdRendererOpenVRSdk::Init(int windowWidth, int windowHeight, PlatformInfo 
 
 	uint32_t nWidth, nHeight;
 
-	//mpDevice->GetDeviceResolution(nWidth, nHeight, bA, bA);
+	//m_pDevice->GetDeviceResolution(nWidth, nHeight, bA, bA);
 
-	mpDevice->GetHMDSystem()->GetRecommendedRenderTargetSize(&nWidth, &nHeight);
+	m_pDevice->GetHMDSystem()->GetRecommendedRenderTargetSize(&nWidth, &nHeight);
 
 	int nSuperSampling = 1;
 
@@ -118,12 +118,6 @@ bool HmdRendererOpenVRSdk::Init(int windowWidth, int windowHeight, PlatformInfo 
 			mOffsetMatrix.m[1][3] = 1.35f;
 			mOffsetMatrix.m[2][3] = -1.1f;
 
-			VID_Printf(PRINT_ALL, "MATRIX:\n%f %f %f\n%f %f %f\n%f %f %f\n%f %f %f", 
-				mOffsetMatrix.m[0][0], mOffsetMatrix.m[1][0], mOffsetMatrix.m[2][0],
-				mOffsetMatrix.m[0][1], mOffsetMatrix.m[1][1], mOffsetMatrix.m[2][1],
-				mOffsetMatrix.m[0][2], mOffsetMatrix.m[1][2], mOffsetMatrix.m[2][2],
-				mOffsetMatrix.m[0][3], mOffsetMatrix.m[1][3], mOffsetMatrix.m[2][3]);
-
 			vr::VROverlay()->SetOverlayWidthInMeters(m_ulOverlayHandle, 1.5f);
 			vr::VROverlay()->SetOverlayInputMethod(m_ulOverlayHandle, vr::VROverlayInputMethod_Mouse);
 			vr::VROverlay()->SetOverlayTransformAbsolute(m_ulOverlayHandle, vr::VRCompositor()->GetTrackingSpace(), &mOffsetMatrix);
@@ -143,7 +137,7 @@ bool HmdRendererOpenVRSdk::Init(int windowWidth, int windowHeight, PlatformInfo 
     return true;
 }
 
-void HmdRendererOpenVRSdk::Shutdown()
+void COpenVRRenderer::Shutdown()
 {
 	if (!m_bIsInitialized)
 		return;
@@ -163,7 +157,7 @@ void HmdRendererOpenVRSdk::Shutdown()
 	m_bIsInitialized = false;
 }
 
-bool HmdRendererOpenVRSdk::CreateTextureSwapChain(int nWidth, int nHeight, GLuint* Texture)
+bool COpenVRRenderer::CreateTextureSwapChain(int nWidth, int nHeight, GLuint* Texture)
 {
 	qglGenTextures(1, Texture);
 	qglBindTexture(GL_TEXTURE_2D, *Texture);
@@ -174,17 +168,7 @@ bool HmdRendererOpenVRSdk::CreateTextureSwapChain(int nWidth, int nHeight, GLuin
 	return true;
 }
 
-std::string HmdRendererOpenVRSdk::GetInfo()
-{
-    return "HmdRendererOpenVRSdk";
-}
-
-bool HmdRendererOpenVRSdk::HandlesSwap()
-{
-    return false;
-}
-
-bool HmdRendererOpenVRSdk::GetRenderResolution(int& rWidth, int& rHeight)
+bool COpenVRRenderer::GetRenderResolution(int& rWidth, int& rHeight)
 {
     rWidth = mRenderWidth;
     rHeight = mRenderHeight;
@@ -192,12 +176,12 @@ bool HmdRendererOpenVRSdk::GetRenderResolution(int& rWidth, int& rHeight)
     return true;
 }
 
-void HmdRendererOpenVRSdk::StartFrame()
+void COpenVRRenderer::StartFrame()
 {
 	m_bStartedFrame = true;
 }
 
-void HmdRendererOpenVRSdk::BeginRenderingForEye(bool leftEye)
+void COpenVRRenderer::BeginRenderingForEye(bool leftEye)
 {
 	if (!m_bIsInitialized || !m_bStartedFrame)
 		return;
@@ -221,13 +205,30 @@ void HmdRendererOpenVRSdk::BeginRenderingForEye(bool leftEye)
 
 		qglDisable(GL_FRAMEBUFFER_SRGB);
 
+		// Update the tracked device events
+		m_pDevice->GetTrackedDevices()->UpdateEvents();
+
 		vr::VRCompositor()->WaitGetPoses(m_rTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0);
 
 		for (int nDevice = 0; nDevice < vr::k_unMaxTrackedDeviceCount; ++nDevice)
 		{
 			if (m_rTrackedDevicePose[nDevice].bPoseIsValid)
 			{
-				m_rmat4DevicePose[nDevice] = m_rTrackedDevicePose[nDevice].mDeviceToAbsoluteTracking;
+				m_pDevice->GetTrackedDevices()->SetTrackingMatrix(nDevice, m_rTrackedDevicePose[nDevice].mDeviceToAbsoluteTracking);
+			}
+
+			vr::ETrackedDeviceClass devClass = m_pDevice->GetHMDSystem()->GetTrackedDeviceClass(nDevice);
+			switch (devClass)
+			{
+				case vr::ETrackedDeviceClass::TrackedDeviceClass_Controller:
+				{
+					vr::VRControllerState_t state;
+					if (m_pDevice->GetHMDSystem()->GetControllerState(nDevice, &state, sizeof(vr::VRControllerState_t)))
+					{
+						m_pDevice->GetTrackedDevices()->UpdateController(nDevice, m_rTrackedDevicePose[nDevice].mDeviceToAbsoluteTracking, state);
+					}
+				}
+				break;
 			}
 		}
 
@@ -267,7 +268,7 @@ void HmdRendererOpenVRSdk::BeginRenderingForEye(bool leftEye)
 	}
 }
 
-void HmdRendererOpenVRSdk::EndFrame()
+void COpenVRRenderer::EndFrame()
 {
 	// Temporary to stop crashing on load screens
 	cvar_t* pHmdEnabled = Cvar_Get("hmd_test", "0", CVAR_TEMP);
@@ -338,18 +339,18 @@ void HmdRendererOpenVRSdk::EndFrame()
 	mEyeId = -1;
 }
 
-bool HmdRendererOpenVRSdk::GetCustomProjectionMatrix(float* rProjectionMatrix, float zNear, float zFar, float fov)
+bool COpenVRRenderer::GetCustomProjectionMatrix(float* rProjectionMatrix, float zNear, float zFar, float fov)
 {
 	if (!m_bIsInitialized)
 		return false;
 
-	vr::HmdMatrix44_t projMatrix = mpDevice->GetHMDSystem()->GetProjectionMatrix((vr::EVREye)mEyeId, zNear, zFar);
+	vr::HmdMatrix44_t projMatrix = m_pDevice->GetHMDSystem()->GetProjectionMatrix((vr::EVREye)mEyeId, zNear, zFar);
 	ConvertMatrix(projMatrix, rProjectionMatrix);
 
     return true;
 }
 
-void HmdRendererOpenVRSdk::ConvertMatrix(const vr::HmdMatrix44_t& from, float* rTo)
+void COpenVRRenderer::ConvertMatrix(const vr::HmdMatrix44_t& from, float* rTo)
 {
 	rTo[0] = from.m[0][0];
 	rTo[4] = from.m[0][1];
@@ -372,27 +373,12 @@ void HmdRendererOpenVRSdk::ConvertMatrix(const vr::HmdMatrix44_t& from, float* r
 	rTo[15] = from.m[3][3];
 }
 
-vr::HmdQuaternion_t HmdRendererOpenVRSdk::GetRotation(vr::HmdMatrix34_t matrix)
-{
-	vr::HmdQuaternion_t q;
-
-	q.w = sqrt(fmax(0, 1 + matrix.m[0][0] + matrix.m[1][1] + matrix.m[2][2])) / 2;
-	q.x = sqrt(fmax(0, 1 + matrix.m[0][0] - matrix.m[1][1] - matrix.m[2][2])) / 2;
-	q.y = sqrt(fmax(0, 1 - matrix.m[0][0] + matrix.m[1][1] - matrix.m[2][2])) / 2;
-	q.z = sqrt(fmax(0, 1 - matrix.m[0][0] - matrix.m[1][1] + matrix.m[2][2])) / 2;
-	q.x = copysign(q.x, matrix.m[2][1] - matrix.m[1][2]);
-	q.y = copysign(q.y, matrix.m[0][2] - matrix.m[2][0]);
-	q.z = copysign(q.z, matrix.m[1][0] - matrix.m[0][1]);
-	return q;
-}
-
-
-bool HmdRendererOpenVRSdk::GetCustomViewMatrix(float* rViewMatrix, float& xPos, float& yPos, float& zPos, float bodyYaw, bool noPosition)
+bool COpenVRRenderer::GetCustomViewMatrix(float* rViewMatrix, float& xPos, float& yPos, float& zPos, float bodyYaw, bool noPosition)
 {
 	if (!m_bIsInitialized)
 		return false;
 
-	vr::HmdMatrix34_t mHmdPose = m_rmat4DevicePose[vr::k_unTrackedDeviceIndex_Hmd];
+	vr::HmdMatrix34_t mHmdPose = m_pDevice->GetTrackedDevices()->GetMatrix(vr::k_unTrackedDeviceIndex_Hmd);
 	vr::HmdQuaternion_t mHmdQuat = GetRotation(mHmdPose);
 
 	glm::quat currentOrientation = glm::quat(mHmdQuat.w, mHmdQuat.x, mHmdQuat.y, mHmdQuat.z);
@@ -462,7 +448,7 @@ bool HmdRendererOpenVRSdk::GetCustomViewMatrix(float* rViewMatrix, float& xPos, 
     return true;
 }
 
-bool HmdRendererOpenVRSdk::Get2DViewport(int& rX, int& rY, int& rW, int& rH)
+bool COpenVRRenderer::Get2DViewport(int& rX, int& rY, int& rW, int& rH)
 {
 	/*if (mCurrentHmdMode == MENU_QUAD_WORLDPOS || mCurrentHmdMode == GAMEWORLD_QUAD_WORLDPOS || mCurrentHmdMode == MENU_QUAD)
 	{
@@ -492,7 +478,7 @@ bool HmdRendererOpenVRSdk::Get2DViewport(int& rX, int& rY, int& rW, int& rH)
     return true;
 }
 
-bool HmdRendererOpenVRSdk::Get2DOrtho(double &rLeft, double &rRight, double &rBottom, double &rTop, double &rZNear, double &rZFar)
+bool COpenVRRenderer::Get2DOrtho(double &rLeft, double &rRight, double &rBottom, double &rTop, double &rZNear, double &rZFar)
 {
     rLeft = 0;
     rRight = 640;
@@ -504,12 +490,7 @@ bool HmdRendererOpenVRSdk::Get2DOrtho(double &rLeft, double &rRight, double &rBo
     return true;
 }
 
-void HmdRendererOpenVRSdk::SetCurrentHmdMode(HmdMode mode)
-{
-    mCurrentHmdMode = mode;
-}
-
-void HmdRendererOpenVRSdk::PreparePlatform()
+void COpenVRRenderer::PreparePlatform()
 {
     RenderTool::SetVSync(false);
 }

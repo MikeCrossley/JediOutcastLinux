@@ -177,10 +177,12 @@ if(USE_OPENVR_SDK)
 	endif()
 		
 	set(SSF_HMD_OPENVR_1 ${SSF_HMD_OPENVR_1}
-        code/hmd/OpenVR/HmdDeviceOpenVRSdk.h
-        code/hmd/OpenVR/HmdDeviceOpenVRSdk.cpp
-        code/hmd/OpenVR/HmdRendererOpenVRSdk.h
-        code/hmd/OpenVR/HmdRendererOpenVRSdk.cpp
+        code/hmd/OpenVR/OpenVRDevice.h
+        code/hmd/OpenVR/OpenVRDevice.cpp
+        code/hmd/OpenVR/OpenVRRenderer.h
+        code/hmd/OpenVR/OpenVRRenderer.cpp
+        code/hmd/OpenVR/OpenVRTracking.h
+        code/hmd/OpenVR/OpenVRTracking.cpp
         code/hmd/OpenVR/OpenVRHelper.h
 	)	
 	
