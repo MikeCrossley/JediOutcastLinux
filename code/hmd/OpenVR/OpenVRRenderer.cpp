@@ -32,7 +32,7 @@ COpenVRRenderer::COpenVRRenderer(COpenVRDevice* pDevice)
     , mRenderHeight(0)
     , mGuiScale(0.5f)
     , mGuiOffsetFactorX(0)
-    , mMeterToGameUnits(IHmdDevice::METER_TO_GAME)
+    , mMeterToGameUnits(IHmdDevice::METER_TO_GAME / 2)
     , m_pDevice(pDevice)
     , mMenuStencilDepthBuffer(0)
     , mReadFBO(0)
@@ -64,7 +64,7 @@ bool COpenVRRenderer::Init(int windowWidth, int windowHeight, PlatformInfo platf
 
 	int nSuperSampling = 1;
 
-	mRenderWidth = nWidth * 2 * nSuperSampling;
+	mRenderWidth = nWidth * nSuperSampling;
     mRenderHeight = nHeight * nSuperSampling;
     
 	if (!vr::VRCompositor())
@@ -270,11 +270,6 @@ void COpenVRRenderer::BeginRenderingForEye(bool leftEye)
 
 void COpenVRRenderer::EndFrame()
 {
-	// Temporary to stop crashing on load screens
-	cvar_t* pHmdEnabled = Cvar_Get("hmd_test", "0", CVAR_TEMP);
-	if (pHmdEnabled->integer == 0)
-		return;
-
 	if (!m_bIsInitialized || !m_bStartedFrame)
 		return;
 
@@ -343,6 +338,8 @@ bool COpenVRRenderer::GetCustomProjectionMatrix(float* rProjectionMatrix, float 
 {
 	if (!m_bIsInitialized)
 		return false;
+
+	zNear = 0.1f;
 
 	vr::HmdMatrix44_t projMatrix = m_pDevice->GetHMDSystem()->GetProjectionMatrix((vr::EVREye)mEyeId, zNear, zFar);
 	ConvertMatrix(projMatrix, rProjectionMatrix);

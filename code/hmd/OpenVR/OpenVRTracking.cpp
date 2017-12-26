@@ -11,6 +11,21 @@ void COpenVRTracking::Init(COpenVRDevice* pDevice)
 
 	for (int i = 0; i < eController_OpenVR_MaxNum; i++)
 		m_ControllerIndex[i] = vr::k_unMaxTrackedDeviceCount;
+
+	// Look for already connected devices
+	for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++)
+	{
+		vr::ETrackedDeviceClass devClass = m_pDevice->GetHMDSystem()->GetTrackedDeviceClass(i);
+		switch (devClass)
+		{
+			case vr::ETrackedDeviceClass::TrackedDeviceClass_Controller:
+			{
+				VID_Printf(PRINT_ALL, "[HMD][OpenVR] - Controller Already Connected: %d \n",i);
+				OnControllerConnect(i);
+			}
+			break;
+		}
+	}
 }
 
 void COpenVRTracking::UpdateEvents()
@@ -32,7 +47,6 @@ void COpenVRTracking::UpdateEvents()
 					case vr::ETrackedDeviceClass::TrackedDeviceClass_Controller:
 					{
 						VID_Printf(PRINT_ALL, "[HMD][OpenVR] - Controller Connected: %d \n", event.trackedDeviceIndex);
-
 						OnControllerConnect(event.trackedDeviceIndex);
 					}
 					break;

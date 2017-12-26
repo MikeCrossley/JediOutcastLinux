@@ -30,7 +30,11 @@ ClientHmd::ClientHmd()
     ,mLastViewanglePitch(0)
     ,mViewanglePitchDiff(0)
     ,mLastPitch(0)
-    ,mMeterToGameUnits(IHmdDevice::METER_TO_GAME)
+#ifdef USE_OPENVR
+    ,mMeterToGameUnits(IHmdDevice::METER_TO_GAME / 2)
+#else
+	, mMeterToGameUnits(IHmdDevice::METER_TO_GAME)
+#endif
 {
 
 }
@@ -143,7 +147,7 @@ void ClientHmd::UpdateGame()
     angles[3] = mViewangleDiff;
 
     float position[3];
-    bool usePosition = false; //GetPosition(position[0], position[1], position[2]);
+	bool usePosition = false;// GetPosition(position[0], position[1], position[2]);
     if (usePosition)
     {
         VM_Call(CG_HMD_UPDATE_ROT_POS, &angles[0], &position[0]);

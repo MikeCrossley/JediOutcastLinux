@@ -1665,6 +1665,7 @@ static qboolean CG_CalcViewValues( void ) {
 		}
 	}
 
+#ifndef USE_OPENVR
 	if ( (cg.renderingThirdPerson||cg.snap->ps.weapon == WP_SABER||cg.snap->ps.weapon == WP_MELEE) 
 		&& !cg.zoomMode 
 		&& !viewEntIsCam )
@@ -1716,12 +1717,13 @@ static qboolean CG_CalcViewValues( void ) {
 	else 
 	{
 		// offset for local bobbing and kicks
-		CG_OffsetFirstPersonView( qfalse );
+		//CG_OffsetFirstPersonView( qfalse );
 		centity_t	*playerCent = &cg_entities[0];
 		if ( playerCent && playerCent->gent && playerCent->gent->client )
 		{
-			VectorCopy( cg.refdef.vieworg, playerCent->gent->client->renderInfo.eyePoint );
-			VectorCopy( cg.refdefViewAngles, playerCent->gent->client->renderInfo.eyeAngles );
+			VectorCopy(cg.refdef.vieworg, playerCent->gent->client->renderInfo.eyePoint);
+			VectorCopy(cg.refdefViewAngles, playerCent->gent->client->renderInfo.eyeAngles);
+
 			if ( cg.snap->ps.viewEntity > 0 && cg.snap->ps.viewEntity < ENTITYNUM_WORLD )
 			{//in an entity camera view
 				if ( cg_entities[cg.snap->ps.viewEntity].gent->client )
@@ -1742,11 +1744,22 @@ static qboolean CG_CalcViewValues( void ) {
 			}
 		}
 	}
+#else
+	centity_t	*playerCent = &cg_entities[0];
+	if (playerCent && playerCent->gent && playerCent->gent->client)
+	{
+		VectorCopy(cg.refdef.vieworg, playerCent->gent->client->renderInfo.eyePoint);
+		VectorCopy(cg.refdefViewAngles, playerCent->gent->client->renderInfo.eyeAngles);
+	}
+#endif
 
 	//VectorCopy( cg.refdef.vieworg, cgRefdefVieworg );
 	// shake the camera if necessary
-	CGCam_UpdateSmooth( cg.refdef.vieworg, cg.refdefViewAngles );
-	CGCam_UpdateShake( cg.refdef.vieworg, cg.refdefViewAngles );
+	if (!cg_useHmd.integer)
+	{
+		CGCam_UpdateSmooth(cg.refdef.vieworg, cg.refdefViewAngles);
+		CGCam_UpdateShake(cg.refdef.vieworg, cg.refdefViewAngles);
+	}
 
 	/*
 	if ( in_camera )
@@ -1785,13 +1798,13 @@ static qboolean CG_CalcViewValues( void ) {
         }
     }
 
-	float x, y, z;
+	/*float x, y, z;
 	if (GameHmd::Get()->GetPosition(x, y, z))
 	{
 		cg.refdef.vieworg[0] += x;
 		cg.refdef.vieworg[1] += y;
 		cg.refdef.vieworg[2] += z;
-	}
+	}*/
 
 	AnglesToAxis( cg.refdefViewAngles, cg.refdef.viewaxis );
 
