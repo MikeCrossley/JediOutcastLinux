@@ -30,11 +30,7 @@ ClientHmd::ClientHmd()
     ,mLastViewanglePitch(0)
     ,mViewanglePitchDiff(0)
     ,mLastPitch(0)
-#ifdef USE_OPENVR
-    ,mMeterToGameUnits(IHmdDevice::METER_TO_GAME / 2)
-#else
-	, mMeterToGameUnits(IHmdDevice::METER_TO_GAME)
-#endif
+	,mMeterToGameUnits(IHmdDevice::METER_TO_GAME)
 {
 
 }

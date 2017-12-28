@@ -1748,8 +1748,12 @@ static qboolean CG_CalcViewValues( void ) {
 	centity_t	*playerCent = &cg_entities[0];
 	if (playerCent && playerCent->gent && playerCent->gent->client)
 	{
-		VectorCopy(cg.refdef.vieworg, playerCent->gent->client->renderInfo.eyePoint);
-		VectorCopy(cg.refdefViewAngles, playerCent->gent->client->renderInfo.eyeAngles);
+		VectorCopy(ps->origin, playerCent->gent->client->renderInfo.eyePoint);
+		VectorCopy(ps->viewangles, playerCent->gent->client->renderInfo.eyeAngles);
+		VectorCopy(ps->origin, cg.refdef.vieworg);
+		
+		// Player origin seems to be the center of the bbox? Subtract half its height for floor origin
+		//cg.refdef.vieworg[2] -= 28.0f;
 	}
 #endif
 
@@ -1797,14 +1801,6 @@ static qboolean CG_CalcViewValues( void ) {
             cg.refdefViewAnglesWeapon[YAW] = inputYaw + SHORT2ANGLE(ps->delta_angles[YAW]);
         }
     }
-
-	/*float x, y, z;
-	if (GameHmd::Get()->GetPosition(x, y, z))
-	{
-		cg.refdef.vieworg[0] += x;
-		cg.refdef.vieworg[1] += y;
-		cg.refdef.vieworg[2] += z;
-	}*/
 
 	AnglesToAxis( cg.refdefViewAngles, cg.refdef.viewaxis );
 
@@ -1894,6 +1890,8 @@ void cgi_CM_SnapPVS(vec3_t origin,byte *buffer);
 extern vec3_t	serverViewOrg;
 void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 	qboolean	inwater = qfalse;
+
+	// The fix is in here somewhere (I think, check for vieworg inconsistencies)
 
     if (stereoView == STEREO_RIGHT) 
     {

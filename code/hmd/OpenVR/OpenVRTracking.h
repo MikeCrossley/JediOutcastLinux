@@ -38,6 +38,7 @@ public:
 	void UpdateController(int nDeviceId, vr::HmdMatrix34_t mMatrix, vr::VRControllerState_t state);
 	void OnControllerConnect(vr::TrackedDeviceIndex_t controllerId);
 	void OnControllerDisconnect(vr::TrackedDeviceIndex_t controllerId);
+	int GetControllerDeviceId(EHmdController id) { return m_ControllerIndex[id]; }
 	bool IsConnected(EHmdController id) const;
 	vr::HmdMatrix34_t GetControllerTransform(EHmdController id);
 private:

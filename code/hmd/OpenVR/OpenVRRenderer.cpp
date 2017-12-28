@@ -30,9 +30,7 @@ COpenVRRenderer::COpenVRRenderer(COpenVRDevice* pDevice)
     , mWindowHeight(0)
     , mRenderWidth(0)
     , mRenderHeight(0)
-    , mGuiScale(0.5f)
-    , mGuiOffsetFactorX(0)
-    , mMeterToGameUnits(IHmdDevice::METER_TO_GAME / 2)
+    , mMeterToGameUnits(IHmdDevice::METER_TO_GAME)
     , m_pDevice(pDevice)
     , mMenuStencilDepthBuffer(0)
     , mReadFBO(0)
@@ -125,8 +123,6 @@ bool COpenVRRenderer::Init(int windowWidth, int windowHeight, PlatformInfo platf
 			vr::Texture_t menuTexture = { (void*)mMenuTextureSet, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
 			vr::VROverlay()->SetOverlayTexture(m_ulOverlayHandle, &menuTexture);
 
-			vr::VROverlayError error = vr::VROverlay()->ShowOverlay(m_ulOverlayHandle);
-
 			VID_Printf(PRINT_ALL, "[HMD][OpenVR] OpenVR Overlay Initialized!\n");
 		}
 	}
@@ -141,8 +137,6 @@ void COpenVRRenderer::Shutdown()
 {
 	if (!m_bIsInitialized)
 		return;
-
-	VID_Printf(PRINT_ALL, "\n\n\nSHUTDOWN\n\n\n");
 
     for (int i = 0; i < FBO_COUNT; i++)
     {
@@ -289,11 +283,6 @@ void COpenVRRenderer::EndFrame()
 		{
 			vr::Texture_t menuTexture = { (void*)mMenuTextureSet, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
 			vr::VROverlay()->SetOverlayTexture(m_ulOverlayHandle, &menuTexture);
-			vr::VROverlay()->ShowOverlay(m_ulOverlayHandle);
-		}
-		else
-		{
-			vr::VROverlay()->HideOverlay(m_ulOverlayHandle);
 		}
 
 		vr::Texture_t leftEyeTexture = { (void*)mEyeTextureSet[0], vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
@@ -370,7 +359,7 @@ void COpenVRRenderer::ConvertMatrix(const vr::HmdMatrix44_t& from, float* rTo)
 	rTo[15] = from.m[3][3];
 }
 
-bool COpenVRRenderer::GetCustomViewMatrix(float* rViewMatrix, float& xPos, float& yPos, float& zPos, float bodyYaw, bool noPosition)
+bool COpenVRRenderer::GetCustomViewMatrix(float* rViewMatrix, vec3_t vCameraOrigin, float bodyYaw, bool noPosition)
 {
 	if (!m_bIsInitialized)
 		return false;
@@ -398,7 +387,7 @@ bool COpenVRRenderer::GetCustomViewMatrix(float* rViewMatrix, float& xPos, float
 
 
 	// convert body transform to matrix
-	glm::mat4 bodyPositionMat = glm::translate(glm::mat4(1.0f), glm::vec3(-xPos, -yPos, -zPos));
+	glm::mat4 bodyPositionMat = glm::translate(glm::mat4(1.0f), glm::vec3(-vCameraOrigin[0], -vCameraOrigin[1], -vCameraOrigin[2]));
 	glm::quat bodyYawRotation = glm::rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f), (float)(DEG2RAD(-bodyYaw)), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	glm::vec3 hmdPosition;
@@ -422,27 +411,7 @@ bool COpenVRRenderer::GetCustomViewMatrix(float* rViewMatrix, float& xPos, float
 
 	memcpy(rViewMatrix, &viewMatrix[0][0], sizeof(float) * 16);
 
-	if (noPosition)
-		return true;
-
-	// add hmd offset to body pos
-	glm::quat bodyYawRotationReverse = glm::rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f), (float)(DEG2RAD(bodyYaw)), glm::vec3(0.0f, 0.0f, 1.0f));
-	glm::mat4 offsetMat = glm::mat4_cast(bodyYawRotationReverse) * hmdPositionMat;
-	glm::vec3 offsetPos = glm::vec3(offsetMat[3]);
-
-	//Vector3f hmdPos2 = Vector3f(hmdPos.x, hmdPos.y, hmdPos.z);
-
-	//Matrix4f bodyYawRotationReverse = Matrix4f::RotationZ(DEG2RAD(bodyYaw));
-	//Vector3f offsetPos = (bodyYawRotationReverse * Matrix4f::Translation(hmdPos2)).GetTranslation();
-
-	/// TODO: do we need this?
-	offsetPos *= -1;
-
-	xPos += offsetPos.x;
-	yPos += offsetPos.y;
-	zPos += offsetPos.z;
-
-    return true;
+	return true;
 }
 
 bool COpenVRRenderer::Get2DViewport(int& rX, int& rY, int& rW, int& rH)
@@ -487,7 +456,23 @@ bool COpenVRRenderer::Get2DOrtho(double &rLeft, double &rRight, double &rBottom,
     return true;
 }
 
+void COpenVRRenderer::SetCurrentHmdMode(HmdMode mode)
+{
+	if (mode == GAMEWORLD_QUAD_WORLDPOS || mode == MENU_QUAD_WORLDPOS)
+	{
+		vr::VROverlay()->ShowOverlay(m_ulOverlayHandle);
+		vr::VROverlay()->HandleControllerOverlayInteractionAsMouse(m_ulOverlayHandle, m_pDevice->GetTrackedDevices()->GetControllerDeviceId(EHmdController::eController_OpenVR_2));
+	}
+	else
+	{
+		vr::VROverlay()->HideOverlay(m_ulOverlayHandle);
+	}
+
+	mCurrentHmdMode = mode;
+}
+
 void COpenVRRenderer::PreparePlatform()
 {
     RenderTool::SetVSync(false);
 }
+

@@ -41,14 +41,21 @@ void ViewParamsHmdUtility::UpdateRenderParams(trGlobals_t* trRef, bool isSkyBoxP
 
         // check if the renderer handles the view matrix creation
         bool matrixCreated = pHmdRenderer->GetCustomViewMatrix(trRef->orient.modelMatrix,
-                origin[0],
-                origin[1],
-                origin[2],
-                mViewYaw, isSkyBoxPortal);
+                origin,
+                mViewYaw, 
+				isSkyBoxPortal);
+
+		origin[0] = trRef->orient.modelMatrix[12];
+		origin[1] = trRef->orient.modelMatrix[13];
+		origin[2] = trRef->orient.modelMatrix[14];
+
+		//rX = matrixHmd.m[0][3];
+		//rY = matrixHmd.m[1][3];
+		//rZ = matrixHmd.m[2][3];
 
         if (matrixCreated)
         {
-            VectorCopy(origin, trRef->viewParms.orient.origin);
+			VectorCopy(origin, trRef->viewParms.orient.origin);
             VectorCopy(origin, trRef->viewParms.orient.viewOrigin);
             VectorCopy(origin, trRef->viewParms.pvsOrigin);
         }

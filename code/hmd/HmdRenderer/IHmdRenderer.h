@@ -8,6 +8,7 @@
 #define IHMDRENDERER_H
 
 #include <string>
+#include "../../game/q_shared.h"
 
 struct PlatformInfo;
 
@@ -39,7 +40,7 @@ public:
     virtual void EndFrame() = 0;
 
     virtual bool GetCustomProjectionMatrix(float* rProjectionMatrix, float zNear, float zFar, float fov) = 0;
-    virtual bool GetCustomViewMatrix(float* rViewMatrix, float &xPos, float &yPos, float &zPos, float bodyYaw, bool noPosition) = 0;
+    virtual bool GetCustomViewMatrix(float* rViewMatrix, vec3_t vCameraOrigin, float bodyYaw, bool noPosition) = 0;
 
     virtual bool Get2DViewport(int& rX, int& rY, int& rW, int& rH) = 0;
     virtual bool Get2DOrtho(double &rLeft, double &rRight, double &rBottom, double &rTop, double &rZNear, double &rZFar) = 0;

@@ -24,6 +24,7 @@
 #ifdef USE_OPENVR
 #include "OpenVR\OpenVRDevice.h"
 #include "OpenVR\OpenVRRenderer.h"
+#include "OpenVR\OpenVRInput.h"
 #endif
 
 
@@ -205,6 +206,15 @@ IHmdInput*FactoryHmdDevice::CreateInputForDevice(IHmdDevice* pDevice)
     {
         return nullptr;
     }
+
+#ifdef USE_OPENVR
+	OpenVR::COpenVRDevice* pOpenVRDevice = dynamic_cast<OpenVR::COpenVRDevice*>(pDevice);
+	if (pOpenVRDevice != nullptr)
+	{
+		OpenVR::COpenVRInput* pInput = new OpenVR::COpenVRInput(pOpenVRDevice);
+		return pInput;
+	}
+#endif
 
 #ifdef USE_OVR_1
     OvrSdk_1::HmdDeviceOculusSdk* pOculusSdk_1 = dynamic_cast<OvrSdk_1::HmdDeviceOculusSdk*>(pDevice);

@@ -46,12 +46,12 @@ public:
     virtual void EndFrame() override;
 
     virtual bool GetCustomProjectionMatrix(float* rProjectionMatrix, float zNear, float zFar, float fov) override;
-    virtual bool GetCustomViewMatrix(float* rViewMatrix, float& xPos, float& yPos, float& zPos, float bodyYaw, bool noPosition) override;
+    virtual bool GetCustomViewMatrix(float* rViewMatrix, vec3_t vCameraOrigin, float bodyYaw, bool noPosition) override;
 
     virtual bool Get2DViewport(int& rX, int& rY, int& rW, int& rH) override;
     virtual bool Get2DOrtho(double &rLeft, double &rRight, double &rBottom, double &rTop, double &rZNear, double &rZFar) override;
 
-	virtual void SetCurrentHmdMode(HmdMode mode) override { mCurrentHmdMode = mode; }
+	virtual void SetCurrentHmdMode(HmdMode mode) override;
     virtual bool HasQuadWorldPosSupport() override { return true; }
 protected:
 	bool CreateTextureSwapChain(int nWidth, int nHeight, GLuint* Texture);
@@ -82,9 +82,6 @@ private:
 
     int mRenderWidth;
     int mRenderHeight;
-
-    float mGuiScale;
-    float mGuiOffsetFactorX;
 
     float mMeterToGameUnits;
 
