@@ -31,6 +31,7 @@ namespace OpenVR
 		eButtonTrigger = 0,
 		eButtonTouchPad,
 		eButtonApplication,
+		eButtonGrip,
 		eButtonMax,
 	};
 

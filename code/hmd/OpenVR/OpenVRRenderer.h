@@ -46,7 +46,7 @@ public:
     virtual void EndFrame() override;
 
     virtual bool GetCustomProjectionMatrix(float* rProjectionMatrix, float zNear, float zFar, float fov) override;
-    virtual bool GetCustomViewMatrix(float* rViewMatrix, vec3_t vCameraOrigin, float bodyYaw, bool noPosition) override;
+    virtual bool GetCustomViewMatrix(float* rViewMatrix, vec3_t &vOrigin, float bodyYaw, bool noPosition) override;
 
     virtual bool Get2DViewport(int& rX, int& rY, int& rW, int& rH) override;
     virtual bool Get2DOrtho(double &rLeft, double &rRight, double &rBottom, double &rTop, double &rZNear, double &rZFar) override;
@@ -87,12 +87,10 @@ private:
 
 	GLuint mEyeTextureSet[2];
     GLuint mEyeStencilBuffer[2]; 
+	GLuint mMenuTextureSet;
     GLuint mMenuStencilDepthBuffer;
 
-	GLuint mMenuTextureSet;
 
-    GLuint mReadFBO;
-    
     HmdMode mCurrentHmdMode;
 };
 }

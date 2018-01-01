@@ -1684,7 +1684,7 @@ static qboolean CG_CalcViewValues( void ) {
 			{
 				vec3_t dir;
 				CG_OffsetFirstPersonView( qtrue );
-				cg.refdef.vieworg[2] += 32;
+				cg.refdef.vieworg[2] -= 32;
 				AngleVectors( cg.refdefViewAngles, dir, NULL, NULL );
 				
 				if (cg_useHmd.integer)
@@ -1745,15 +1745,24 @@ static qboolean CG_CalcViewValues( void ) {
 		}
 	}
 #else
-	centity_t	*playerCent = &cg_entities[0];
-	if (playerCent && playerCent->gent && playerCent->gent->client)
+	if (cg_useHmd.integer)
 	{
-		VectorCopy(ps->origin, playerCent->gent->client->renderInfo.eyePoint);
-		VectorCopy(ps->viewangles, playerCent->gent->client->renderInfo.eyeAngles);
-		VectorCopy(ps->origin, cg.refdef.vieworg);
-		
-		// Player origin seems to be the center of the bbox? Subtract half its height for floor origin
-		//cg.refdef.vieworg[2] -= 28.0f;
+		centity_t	*playerCent = &cg_entities[0];
+		if (playerCent && playerCent->gent && playerCent->gent->client)
+		{
+			VectorCopy(ps->origin, cg.refdef.vieworg);
+
+			// Player origin seems to be the center of the bbox?
+			// Why does this cause huge issues when not subtracted by a number divisible by 8????
+			cg.refdef.vieworg[2] -= 24;
+
+			VectorCopy(cg.refdef.vieworg, playerCent->gent->client->renderInfo.eyePoint);
+			VectorCopy(ps->viewangles, playerCent->gent->client->renderInfo.eyeAngles);
+		}
+	}
+	else
+	{
+		CG_OffsetThirdPersonView();
 	}
 #endif
 
@@ -1763,22 +1772,23 @@ static qboolean CG_CalcViewValues( void ) {
 	{
 		CGCam_UpdateSmooth(cg.refdef.vieworg, cg.refdefViewAngles);
 		CGCam_UpdateShake(cg.refdef.vieworg, cg.refdefViewAngles);
-	}
 
-	/*
-	if ( in_camera )
-	{
-		Com_Printf( "%s %s\n", vtos(client_camera.origin), vtos(cg.refdef.vieworg) ); 
-	}
-	*/
 
-	// see if we are drugged by an interrogator.  We muck with the angles here, just a bit earlier, we mucked with the FOV
-	if ( cg.wonkyTime > 0 && cg.wonkyTime > cg.time )
-	{
-		float perc = (float)(cg.wonkyTime - cg.time) / 10000.0f; // goes for 10 seconds
+		/*
+		if ( in_camera )
+		{
+			Com_Printf( "%s %s\n", vtos(client_camera.origin), vtos(cg.refdef.vieworg) );
+		}
+		*/
 
-		cg.refdefViewAngles[ROLL] += ( sin( cg.time * 0.0004f )  * 7.0f * perc );
-		cg.refdefViewAngles[PITCH] += ( 26.0f * perc + sin( cg.time * 0.0011f ) * 3.0f * perc );
+		// see if we are drugged by an interrogator.  We muck with the angles here, just a bit earlier, we mucked with the FOV
+		if (cg.wonkyTime > 0 && cg.wonkyTime > cg.time)
+		{
+			float perc = (float)(cg.wonkyTime - cg.time) / 10000.0f; // goes for 10 seconds
+
+			cg.refdefViewAngles[ROLL] += (sin(cg.time * 0.0004f)  * 7.0f * perc);
+			cg.refdefViewAngles[PITCH] += (26.0f * perc + sin(cg.time * 0.0011f) * 3.0f * perc);
+		}
 	}
 
 	VectorCopy(cg.refdefViewAngles, cg.refdefViewAnglesWeapon);
@@ -1890,8 +1900,6 @@ void cgi_CM_SnapPVS(vec3_t origin,byte *buffer);
 extern vec3_t	serverViewOrg;
 void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView ) {
 	qboolean	inwater = qfalse;
-
-	// The fix is in here somewhere (I think, check for vieworg inconsistencies)
 
     if (stereoView == STEREO_RIGHT) 
     {

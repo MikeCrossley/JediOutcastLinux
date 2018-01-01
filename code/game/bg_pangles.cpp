@@ -69,6 +69,18 @@ void PM_ScaleUcmd( playerState_t *ps, usercmd_t *cmd, gentity_t *gent )
 extern void SetClientViewAngle( gentity_t *ent, vec3_t angle );
 qboolean PM_AdjustAnglesToGripper( gentity_t *ent, usercmd_t *ucmd )
 {//FIXME: make this more generic and have it actually *tell* the client what cmd angles it should be locked at?
+
+	if (cg_useHmd.integer)
+	{
+		// Don't adjust angles when being gripped in VR as its quite nauesea inducing
+		if (ent->s.number == 0)
+		{
+			return qfalse;
+		}
+	}
+
+
+
 	if ( (ent->client->ps.eFlags&EF_FORCE_GRIPPED) && ent->enemy )
 	{
 		vec3_t dir, angles;
@@ -321,6 +333,15 @@ qboolean PM_AdjustAnglesForBackAttack( gentity_t *ent, usercmd_t *ucmd )
 
 qboolean PM_AdjustAnglesForSaberLock( gentity_t *ent, usercmd_t *ucmd )
 {
+	if (cg_useHmd.integer)
+	{
+		// Don't adjust angles when saber locking in VR as its quite nauesea inducing
+		if (ent->s.number == 0)
+		{
+			return qfalse;
+		}
+	}
+
 	if ( ent->client->ps.saberLockTime > level.time )
 	{
 		if ( ent->client->ps.viewEntity <= 0 || ent->client->ps.viewEntity >= ENTITYNUM_WORLD )

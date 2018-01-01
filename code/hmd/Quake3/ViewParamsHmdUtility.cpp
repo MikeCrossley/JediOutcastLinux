@@ -13,11 +13,6 @@ void ViewParamsHmdUtility::UpdateRenderParams(trGlobals_t* trRef, bool isSkyBoxP
     IHmdRenderer* pHmdRenderer = ClientHmd::Get()->GetRenderer();
     if (pHmdRenderer)
     {
-        vec3_t origin;
-
-        // transform by the camera placement
-        VectorCopy( trRef->viewParms.orient.origin, origin );
-
         // handle keyhole yaw for decoupled aiming, if the signed difference between the view angle 
         // and the body angle exceeds the keyhole width, move the view angle in that direction
         if (hmd_decoupleAim->integer && !ClientHmd::Get()->HasHand(true))
@@ -39,19 +34,14 @@ void ViewParamsHmdUtility::UpdateRenderParams(trGlobals_t* trRef, bool isSkyBoxP
             mViewYaw = trRef->viewParms.bodyYaw;
         }
 
+		vec3_t origin;
+		VectorCopy(trRef->viewParms.orient.origin, origin);
+
         // check if the renderer handles the view matrix creation
         bool matrixCreated = pHmdRenderer->GetCustomViewMatrix(trRef->orient.modelMatrix,
-                origin,
+				origin,
                 mViewYaw, 
 				isSkyBoxPortal);
-
-		origin[0] = trRef->orient.modelMatrix[12];
-		origin[1] = trRef->orient.modelMatrix[13];
-		origin[2] = trRef->orient.modelMatrix[14];
-
-		//rX = matrixHmd.m[0][3];
-		//rY = matrixHmd.m[1][3];
-		//rZ = matrixHmd.m[2][3];
 
         if (matrixCreated)
         {
@@ -61,22 +51,5 @@ void ViewParamsHmdUtility::UpdateRenderParams(trGlobals_t* trRef, bool isSkyBoxP
         }
 
         rViewMatrixCreated = matrixCreated;
-    }
-    else
-    {
-        vec3_t hmdOffset;
-        bool worked = ClientHmd::Get()->GetPosition(hmdOffset[0], hmdOffset[1], hmdOffset[2]);
-        if (worked)
-        {
-            vec3_t origin;
-            VectorCopy( trRef->viewParms.orient.origin, origin);
-
-            for (int i=0; i<3; i++)
-            {
-                origin[i] += hmdOffset[i];
-            }
-
-            VectorCopy(origin, trRef->viewParms.orient.origin);
-        }
     }
 }

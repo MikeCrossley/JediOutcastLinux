@@ -1528,10 +1528,10 @@ Ghoul2 Insert End
 		vec3_t vrR_rot, vrR_pos, pos = { 0 }, rot = { 0 };
 
 		// Get our hand position/orientation, match to world rotation
-		GameHmd::Get()->GetRightHandOrientation(vrR_rot[PITCH], vrR_rot[YAW], vrR_rot[ROLL]);
+		GameHmd::Get()->GetRightHandOrientation(vrR_rot[PITCH], vrR_rot[ROLL], vrR_rot[YAW]);
 		GameHmd::Get()->GetRightHandPosition(vrR_pos[0], vrR_pos[1], vrR_pos[2]);
-		vrR_rot[YAW] += cg.refdefViewAnglesWeapon[YAW];
-		vrR_rot[PITCH] += 45.0f; //TODO: Have GameHmd handle transforms for guns vs sabers? Controller grip depends on the headset.
+		vrR_rot[YAW] += cg.refdefViewAnglesWeapon[YAW] + 90.f;
+		//vrR_rot[PITCH] += 45.0f; //TODO: Have GameHmd handle transforms for guns vs sabers? Controller grip depends on the headset.
 
 		// Rotate saber to be in front of weapon view at all times
 		viewAnglesWeapon[PITCH] = 0.0f;
@@ -1557,6 +1557,7 @@ Ghoul2 Insert End
 
 		VectorCopy(pos, cent->lerpOrigin );
 		VectorCopy(vrR_rot, cent->lerpAngles);
+
 		return;
 	}
 	

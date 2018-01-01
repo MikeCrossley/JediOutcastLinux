@@ -43,7 +43,6 @@ public:
 	vr::HmdMatrix34_t GetControllerTransform(EHmdController id);
 private:
 	vr::HmdMatrix34_t m_rmat4DevicePose[vr::k_unMaxTrackedDeviceCount];
-	vr::HmdMatrix34_t m_rmat4Controllers[2];
 
 	int m_ControllerIndex[eController_OpenVR_MaxNum];
 

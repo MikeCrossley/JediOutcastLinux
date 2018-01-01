@@ -5228,7 +5228,7 @@ void WP_SaberUpdate( gentity_t *self, usercmd_t *ucmd )
 			GameHmd::Get()->GetRightHandOrientation(vrR_rot[PITCH], vrR_rot[YAW], vrR_rot[ROLL]);
 			GameHmd::Get()->GetRightHandPosition(vrR_pos[0], vrR_pos[1], vrR_pos[2]);
 			vrR_rot[YAW] += cg.refdefViewAnglesWeapon[YAW];
-			vrR_rot[PITCH] += 45.0f; //TODO: Have GameHmd handle transforms for guns vs sabers? Controller grip depends on the headset.
+			//vrR_rot[PITCH] += 45.0f; //TODO: Have GameHmd handle transforms for guns vs sabers? Controller grip depends on the headset.
 
 			// Rotate saber to be in front of weapon view at all times
 			viewAnglesWeapon[PITCH] = 0.0f;
@@ -5603,6 +5603,16 @@ void WP_ForceKnockdown( gentity_t *self, gentity_t *pusher, qboolean pull, qbool
 	{
 		return;
 	}
+
+	// HMD :: Dont push down the player when in VR mode since there is no way to do this cleanly
+    int useHmd = gi.Cvar_VariableIntegerValue("cg_useHmd");
+	if (useHmd == 1)
+	{
+		if (self->s.number == 0)
+			return;
+	}
+	// ~HMD
+
 
 	//break out of a saberLock?
 	if ( breakSaberLock )

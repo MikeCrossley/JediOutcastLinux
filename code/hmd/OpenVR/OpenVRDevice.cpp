@@ -7,6 +7,12 @@
 #include <cmath>
 #include <algorithm>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+
 #ifdef _WINDOWS
 	#define _USE_MATH_DEFINES
 	#include <math.h>
@@ -39,15 +45,15 @@ bool COpenVRDevice::Init(bool allowDummyDevice)
 	vr::EVRInitError eError = vr::EVRInitError::VRInitError_None;
 	m_pVRSystem = vr::VR_Init(&eError, vr::EVRApplicationType::VRApplication_Scene);
 
-	m_pTrackedDevices = new COpenVRTracking();
-	m_pTrackedDevices->Init(this);
-
 	if (eError != vr::EVRInitError::VRInitError_None)
 	{
 		m_pVRSystem = nullptr;
 		VID_Printf(PRINT_ALL, "[HMD][OpenVR] Unable to initialize VR runtime: %s\n", vr::VR_GetVRInitErrorAsEnglishDescription(eError));
 		return false;
 	}
+
+	m_pTrackedDevices = new COpenVRTracking();
+	m_pTrackedDevices->Init(this);
 
 	m_bIsInitialized = true;
 
@@ -75,13 +81,15 @@ bool COpenVRDevice::GetDeviceResolution(int& rWidth, int& rHeight, bool& rIsRota
 	if (!m_bIsInitialized)
         return false;
 
-	/*uint32_t width = 0;
+	uint32_t width = 0;
 	uint32_t height = 0;
 
-	m_pVRSystem->GetRecommendedRenderTargetSize(&width, &height);*/
+	m_pVRSystem->GetRecommendedRenderTargetSize(&width, &height);
 
-	rWidth = 1280;
-	rHeight = 720;
+	rWidth = width / 2;
+	rHeight = height / 2;
+
+	// this only seems to influence the window size?
 
     return true;
 }
@@ -125,15 +133,24 @@ bool COpenVRDevice::GetHandOrientationRad(bool rightHand, float& rPitch, float& 
         return false;
 
 	vr::HmdMatrix34_t matrixController = GetTrackedDevices()->GetControllerTransform(rightHand ? eController_OpenVR_2 : eController_OpenVR_1);
-	vr::HmdQuaternion_t orientation = GetRotation(matrixController);
+	vr::HmdQuaternion_t deviceOrientation = GetRotation(matrixController);
 
-	float quat[4];
-	quat[0] = orientation.x;
-	quat[1] = orientation.y;
-	quat[2] = orientation.z;
-	quat[3] = orientation.w;
+	glm::quat currentOrientation = glm::quat(deviceOrientation.w, deviceOrientation.x, deviceOrientation.z, deviceOrientation.y);
+	glm::quat handRotation = glm::inverse(currentOrientation);
 
-	ConvertQuatToEuler(&quat[0], rYaw, rPitch, rRoll);
+	// Convert
+	glm::quat convertHmdToGame = glm::rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f), (float)DEG2RAD(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	convertHmdToGame = glm::rotate(convertHmdToGame, (float)DEG2RAD(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+	glm::quat qRotation = handRotation * convertHmdToGame;
+	qRotation = glm::rotate(qRotation, (float)DEG2RAD(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+
+	glm::vec3 angles = glm::eulerAngles(qRotation);
+
+	rYaw = angles.x;
+	rPitch = angles.y;
+	rRoll = angles.z;
 
     return true;
 }
@@ -159,7 +176,7 @@ bool COpenVRDevice::HasHand(bool rightHand)
 
 void COpenVRDevice::Recenter()
 {
-	m_pVRSystem->ResetSeatedZeroPose();
+	//m_pVRSystem->ResetSeatedZeroPose();
 }
 
 

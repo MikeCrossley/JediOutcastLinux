@@ -54,6 +54,7 @@ void COpenVRInput::Update()
 	m_CurrentButtonState[EVRButtons::eButtonTrigger] = GetControllerState(eController_OpenVR_2).IsPressed(vr::EVRButtonId::k_EButton_SteamVR_Trigger) ? EButtonState::eButtonPressed : EButtonState::eButtonReleased;
 	m_CurrentButtonState[EVRButtons::eButtonTouchPad] = GetControllerState(eController_OpenVR_2).IsPressed(vr::EVRButtonId::k_EButton_SteamVR_Touchpad) ? EButtonState::eButtonPressed : EButtonState::eButtonReleased;
 	m_CurrentButtonState[EVRButtons::eButtonApplication] = GetControllerState(eController_OpenVR_2).IsPressed(vr::EVRButtonId::k_EButton_ApplicationMenu) ? EButtonState::eButtonPressed : EButtonState::eButtonReleased;
+	m_CurrentButtonState[EVRButtons::eButtonGrip] = GetControllerState(eController_OpenVR_2).IsPressed(vr::EVRButtonId::k_EButton_Grip) ? EButtonState::eButtonPressed : EButtonState::eButtonReleased;
 }
 
 bool COpenVRInput::PollChangedButton(size_t &rButtonId, bool &pressed)

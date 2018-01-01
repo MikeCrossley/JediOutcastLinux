@@ -33,7 +33,6 @@ COpenVRRenderer::COpenVRRenderer(COpenVRDevice* pDevice)
     , mMeterToGameUnits(IHmdDevice::METER_TO_GAME)
     , m_pDevice(pDevice)
     , mMenuStencilDepthBuffer(0)
-    , mReadFBO(0)
     , mCurrentHmdMode(GAMEWORLD)
 {
 
@@ -60,10 +59,8 @@ bool COpenVRRenderer::Init(int windowWidth, int windowHeight, PlatformInfo platf
 
 	m_pDevice->GetHMDSystem()->GetRecommendedRenderTargetSize(&nWidth, &nHeight);
 
-	int nSuperSampling = 1;
-
-	mRenderWidth = nWidth * nSuperSampling;
-    mRenderHeight = nHeight * nSuperSampling;
+	mRenderWidth = nWidth;
+    mRenderHeight = nHeight;
     
 	if (!vr::VRCompositor())
 	{
@@ -143,10 +140,6 @@ void COpenVRRenderer::Shutdown()
         qglDeleteFramebuffers(1, &mFboInfos[i].Fbo);
 		qglDeleteTextures(1, &mEyeTextureSet[i]);
 	}
-
-    qglDeleteFramebuffers(1, &mReadFBO);
-    mReadFBO = 0;
-
 
 	m_bIsInitialized = false;
 }
@@ -292,9 +285,23 @@ void COpenVRRenderer::EndFrame()
 
 		vr::VRCompositor()->PostPresentHandoff();
 
+
+		// Mirror
 		qglBindBuffer(GL_ARRAY_BUFFER, 0);
 		qglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		qglViewport(0, 0, mWindowWidth, mWindowHeight);
+
+		qglBindFramebuffer(GL_READ_FRAMEBUFFER, (mCurrentHmdMode == GAMEWORLD_QUAD_WORLDPOS || mCurrentHmdMode == MENU_QUAD_WORLDPOS) ? mMenuTextureSet : mEyeTextureSet[0]);
+		qglBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+		qglDrawBuffer(GL_BACK);
+
+		qglBlitFramebuffer(0, 0, mRenderWidth, mRenderHeight,
+			0, 0, mWindowWidth, mWindowHeight,
+			GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+		qglBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		// ~Mirror
 
 		m_bStartedFrame = false;
 		m_bStartedRendering = false;
@@ -359,7 +366,7 @@ void COpenVRRenderer::ConvertMatrix(const vr::HmdMatrix44_t& from, float* rTo)
 	rTo[15] = from.m[3][3];
 }
 
-bool COpenVRRenderer::GetCustomViewMatrix(float* rViewMatrix, vec3_t vCameraOrigin, float bodyYaw, bool noPosition)
+bool COpenVRRenderer::GetCustomViewMatrix(float* rViewMatrix, vec3_t &vOrigin, float bodyYaw, bool noPosition)
 {
 	if (!m_bIsInitialized)
 		return false;
@@ -387,7 +394,7 @@ bool COpenVRRenderer::GetCustomViewMatrix(float* rViewMatrix, vec3_t vCameraOrig
 
 
 	// convert body transform to matrix
-	glm::mat4 bodyPositionMat = glm::translate(glm::mat4(1.0f), glm::vec3(-vCameraOrigin[0], -vCameraOrigin[1], -vCameraOrigin[2]));
+	glm::mat4 bodyPositionMat = glm::translate(glm::mat4(1.0f), glm::vec3(-vOrigin[0], -vOrigin[1], -vOrigin[2]));
 	glm::quat bodyYawRotation = glm::rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f), (float)(DEG2RAD(-bodyYaw)), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	glm::vec3 hmdPosition;
@@ -411,35 +418,46 @@ bool COpenVRRenderer::GetCustomViewMatrix(float* rViewMatrix, vec3_t vCameraOrig
 
 	memcpy(rViewMatrix, &viewMatrix[0][0], sizeof(float) * 16);
 
+	if (noPosition)
+	{
+		return true;
+	}
+
+	// add hmd offset to body pos
+
+	glm::quat bodyYawRotationReverse = glm::rotate(glm::quat(1.0f, 0.0f, 0.0f, 0.0f), (float)(DEG2RAD(bodyYaw)), glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::mat4 offsetMat = glm::mat4_cast(bodyYawRotationReverse) * hmdPositionMat;
+	glm::vec3 offsetPos = glm::vec3(offsetMat[3]);
+
+	//Vector3f hmdPos2 = Vector3f(hmdPos.x, hmdPos.y, hmdPos.z);
+
+	//Matrix4f bodyYawRotationReverse = Matrix4f::RotationZ(DEG2RAD(bodyYaw));
+	//Vector3f offsetPos = (bodyYawRotationReverse * Matrix4f::Translation(hmdPos2)).GetTranslation();
+
+	/// TODO: do we need this?
+	offsetPos *= -1;
+
+	vOrigin[0] += offsetPos.x;
+	vOrigin[1] += offsetPos.y;
+	vOrigin[2] += offsetPos.z;
+
 	return true;
 }
 
 bool COpenVRRenderer::Get2DViewport(int& rX, int& rY, int& rW, int& rH)
 {
-	/*if (mCurrentHmdMode == MENU_QUAD_WORLDPOS || mCurrentHmdMode == GAMEWORLD_QUAD_WORLDPOS || mCurrentHmdMode == MENU_QUAD)
+	if (mCurrentHmdMode == MENU_QUAD_WORLDPOS || mCurrentHmdMode == GAMEWORLD_QUAD_WORLDPOS || mCurrentHmdMode == MENU_QUAD)
 	{
 		return true;
 	}
 
-	// shrink the gui for the HMD display
-	float aspect = 1.0f;
+	float fGuiScale = 0.65f;
 
-	float guiScale = mGuiScale;
-
-	rW = mRenderWidth *guiScale;
-	rH = mRenderWidth *guiScale * aspect;
+	rW = mRenderWidth * fGuiScale;
+	rH = mRenderWidth * fGuiScale;
 
 	rX = (mRenderWidth - rW) / 2.0f;
-	int xOff = mGuiOffsetFactorX != 0 ? (mRenderWidth / mGuiOffsetFactorX) : 0;
-	xOff *= mEyeId == 0 ? 1 : -1;
-	rX += xOff;
-
-	rY = (mRenderHeight - rH) / 2;*/
-
-	rX = 0;
-	rY = 0;
-	rW = mRenderWidth;
-	rH = mRenderHeight;
+	rY = (mRenderHeight - rH) / 2.0f;
 
     return true;
 }
