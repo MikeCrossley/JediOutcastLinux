@@ -723,6 +723,7 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace, int hitLoc=HL_NONE )
 	// check for hitting a lightsaber
 	if ( other->contents & CONTENTS_LIGHTSABER )
 	{
+		Com_Printf("Hit Lightsaber");
 		if ( other->owner && !other->owner->s.number && other->owner->client )
 		{
 			other->owner->client->sess.missionStats.saberBlocksCnt++;

@@ -2,7 +2,6 @@
 #include "HmdDevice/IHmdDevice.h"
 #include "Quake3/GameMenuHmdManager.h"
 
-#include "../game/q_shared.h"
 #include "../client/client.h"
 #include "../client/vmachine.h"
 
@@ -143,8 +142,7 @@ void ClientHmd::UpdateGame()
     angles[3] = mViewangleDiff;
 
     float position[3];
-	bool usePosition = false;// GetPosition(position[0], position[1], position[2]);
-    if (usePosition)
+	if (GetHMDWorldPosition(position[0], position[1], position[2]))
     {
         VM_Call(CG_HMD_UPDATE_ROT_POS, &angles[0], &position[0]);
     }

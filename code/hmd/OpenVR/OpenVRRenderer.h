@@ -56,6 +56,7 @@ public:
 protected:
 	bool CreateTextureSwapChain(int nWidth, int nHeight, GLuint* Texture);
 	void ConvertMatrix(const vr::HmdMatrix44_t& from, float* rTo);
+	void ControllerEvents();
 
 private:
 	COpenVRDevice* m_pDevice;

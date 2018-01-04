@@ -25,6 +25,9 @@ void CalcEntitySpot ( gentity_t *ent, spot_t spot, vec3_t point )
 Added: Uses shootAngles if a NPC has them
 
 */
+
+#include "../hmd/GameHmd.h"
+
 extern void ViewHeightFix(const gentity_t *const ent);
 extern void AddLeanOfs(const gentity_t *const ent, vec3_t point);
 extern void SubtractLeanOfs(const gentity_t *const ent, vec3_t point);
@@ -33,7 +36,6 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 	vec3_t	forward, up, right;
 	vec3_t	start, end;
 	trace_t	tr;
-
 	if ( !ent )
 	{
 		return;
@@ -55,69 +57,86 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 
 	case SPOT_CHEST:
 	case SPOT_HEAD:
-		if ( ent->client && VectorLengthSquared( ent->client->renderInfo.eyePoint ) && (ent->client->ps.viewEntity <= 0 || ent->client->ps.viewEntity >= ENTITYNUM_WORLD) )
-		{//Actual tag_head eyespot!
-			//FIXME: Stasis aliens may have a problem here...
-			VectorCopy( ent->client->renderInfo.eyePoint, point );
-			if ( ent->client->NPC_class == CLASS_ATST )
-			{//adjust up some
-				point[2] += 28;//magic number :)
-			}
-			if ( ent->NPC )
-			{//always aim from the center of my bbox, so we don't wiggle when we lean forward or backwards
-				point[0] = ent->currentOrigin[0];
-				point[1] = ent->currentOrigin[1];
-			}
-			else if ( !ent->s.number )
-			{
-				SubtractLeanOfs( ent, point );
-			}
+		
+		// HMD :: If player aim at their head real world head
+		if (ent->s.number == 0)
+		{
+			GameHmd::Get()->GetPosition(point[0], point[1], point[2]);
 		}
 		else
 		{
-			VectorCopy ( ent->currentOrigin, point );
-			if ( ent->client ) 
-			{
-				point[2] += ent->client->ps.viewheight;
+			if (ent->client && VectorLengthSquared(ent->client->renderInfo.eyePoint) && (ent->client->ps.viewEntity <= 0 || ent->client->ps.viewEntity >= ENTITYNUM_WORLD))
+			{//Actual tag_head eyespot!
+				//FIXME: Stasis aliens may have a problem here...
+				VectorCopy(ent->client->renderInfo.eyePoint, point);
+				if (ent->client->NPC_class == CLASS_ATST)
+				{//adjust up some
+					point[2] += 28;//magic number :)
+				}
+				if (ent->NPC)
+				{//always aim from the center of my bbox, so we don't wiggle when we lean forward or backwards
+					point[0] = ent->currentOrigin[0];
+					point[1] = ent->currentOrigin[1];
+				}
+				else if (!ent->s.number)
+				{
+					SubtractLeanOfs(ent, point);
+				}
 			}
-		}
-		if ( spot == SPOT_CHEST && ent->client )
-		{
-			if ( ent->client->NPC_class != CLASS_ATST )
-			{//adjust up some
-				point[2] -= ent->maxs[2]*0.2f;
+			else
+			{
+				VectorCopy(ent->currentOrigin, point);
+				if (ent->client)
+				{
+					point[2] += ent->client->ps.viewheight;
+				}
+			}
+			if (spot == SPOT_CHEST && ent->client)
+			{
+				if (ent->client->NPC_class != CLASS_ATST)
+				{//adjust up some
+					point[2] -= ent->maxs[2] * 0.2f;
+				}
 			}
 		}
 		break;
 
 	case SPOT_HEAD_LEAN:
-		if ( ent->client && VectorLengthSquared( ent->client->renderInfo.eyePoint ) && (ent->client->ps.viewEntity <= 0 || ent->client->ps.viewEntity >= ENTITYNUM_WORLD) )
-		{//Actual tag_head eyespot!
-			//FIXME: Stasis aliens may have a problem here...
-			VectorCopy( ent->client->renderInfo.eyePoint, point );
-			if ( ent->client->NPC_class == CLASS_ATST )
-			{//adjust up some
-				point[2] += 28;//magic number :)
-			}
-			if ( ent->NPC )
-			{//always aim from the center of my bbox, so we don't wiggle when we lean forward or backwards
-				point[0] = ent->currentOrigin[0];
-				point[1] = ent->currentOrigin[1];
-			}
-			else if ( !ent->s.number )
-			{
-				SubtractLeanOfs( ent, point );
-			}
-			//NOTE: automatically takes leaning into account!
+		// HMD :: If player aim at their head real world head
+		if (ent->s.number == 0)
+		{
+			GameHmd::Get()->GetPosition(point[0], point[1], point[2]);
 		}
 		else
 		{
-			VectorCopy ( ent->currentOrigin, point );
-			if ( ent->client ) 
-			{
-				point[2] += ent->client->ps.viewheight;
+			if (ent->client && VectorLengthSquared(ent->client->renderInfo.eyePoint) && (ent->client->ps.viewEntity <= 0 || ent->client->ps.viewEntity >= ENTITYNUM_WORLD))
+			{//Actual tag_head eyespot!
+				//FIXME: Stasis aliens may have a problem here...
+				VectorCopy(ent->client->renderInfo.eyePoint, point);
+				if (ent->client->NPC_class == CLASS_ATST)
+				{//adjust up some
+					point[2] += 28;//magic number :)
+				}
+				if (ent->NPC)
+				{//always aim from the center of my bbox, so we don't wiggle when we lean forward or backwards
+					point[0] = ent->currentOrigin[0];
+					point[1] = ent->currentOrigin[1];
+				}
+				else if (!ent->s.number)
+				{
+					SubtractLeanOfs(ent, point);
+				}
+				//NOTE: automatically takes leaning into account!
 			}
-			//AddLeanOfs ( ent, point );
+			else
+			{
+				VectorCopy(ent->currentOrigin, point);
+				if (ent->client)
+				{
+					point[2] += ent->client->ps.viewheight;
+				}
+				//AddLeanOfs ( ent, point );
+			}
 		}
 		break;
 

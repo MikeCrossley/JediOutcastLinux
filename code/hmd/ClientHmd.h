@@ -7,6 +7,8 @@
 #ifndef CLIENTHMD_H
 #define CLIENTHMD_H
 
+#include "../game/q_shared.h"
+
 class IHmdDevice;
 class IHmdRenderer;
 class IHmdInput;
@@ -28,6 +30,9 @@ public:
     bool GetHandOrientation(bool rightHand, float& rPitch, float& rYaw, float& rRoll);
     bool GetHandPosition(bool rightHand, float& rX, float& rY, float& rZ);
     bool HasHand(bool rightHand);
+
+	bool GetHMDWorldPosition(float &fX, float &fY, float &fZ) { fX = m_vHmdWorldPos[0]; fY = m_vHmdWorldPos[1]; fZ = m_vHmdWorldPos[2]; return true; }
+	void SetHMDWorldPosition(float fX, float fY, float fZ) { m_vHmdWorldPos[0] = fX; m_vHmdWorldPos[1] = fY; m_vHmdWorldPos[2] = fZ; }
 
     IHmdDevice* GetDevice() { return mpDevice; }
     void SetDevice(IHmdDevice* pDevice) { mpDevice = pDevice; }
@@ -60,6 +65,7 @@ private:
     float mLastPitch;
     float mMeterToGameUnits;
 
+	vec3_t m_vHmdWorldPos;
 
     static ClientHmd* sClientHmd;
 };

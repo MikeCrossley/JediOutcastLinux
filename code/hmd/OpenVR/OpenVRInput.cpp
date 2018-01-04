@@ -47,8 +47,8 @@ void COpenVRInput::Update()
 		m_ControllerState[i].nButtonsTouched = vrState.ulButtonTouched;
 
 		m_ControllerState[i].fTriggerValue = vrState.rAxis[vr::k_EButton_SteamVR_Trigger & 0x0f].x;
-		//m_ControllerState[i].vTouchPad[0] = vrState.rAxis[vr::k_EButton_SteamVR_Touchpad & 0x0f].x;
-		//m_ControllerState[i].vTouchPad[1] = vrState.rAxis[vr::k_EButton_SteamVR_Touchpad & 0x0f].y;
+		m_ControllerState[i].vTouchPad[0] = vrState.rAxis[vr::k_EButton_SteamVR_Touchpad & 0x0f].x;
+		m_ControllerState[i].vTouchPad[1] = vrState.rAxis[vr::k_EButton_SteamVR_Touchpad & 0x0f].y;
 	}
 
 	m_CurrentButtonState[EVRButtons::eButtonTrigger] = GetControllerState(eController_OpenVR_2).IsPressed(vr::EVRButtonId::k_EButton_SteamVR_Trigger) ? EButtonState::eButtonPressed : EButtonState::eButtonReleased;
@@ -73,6 +73,18 @@ bool COpenVRInput::PollChangedButton(size_t &rButtonId, bool &pressed)
 	}
 
 	return false;
+}
+
+float COpenVRInput::GetAxisValue(size_t axisId)
+{
+	SControllerState &state = GetControllerState(eController_OpenVR_1);
+
+	float fAxisValue = state.GetTouchpadAxis(axisId);
+
+	if (axisId == AXIS_FORWARD)
+		fAxisValue *= -1.f;
+
+	return fAxisValue;
 }
 
 bool COpenVRInput::PollChangedAxis(size_t &rAxisId, float &axisValue)

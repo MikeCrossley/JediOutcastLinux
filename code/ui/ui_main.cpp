@@ -2266,6 +2266,20 @@ void _UI_MouseEvent( int dx, int dy )
 
 /*
 =================
+UI_MouseEvent
+=================
+*/
+void _UI_MouseSet(int nx, int ny)
+{
+	// update mouse screen position
+	uiInfo.uiDC.cursorx = 0;
+	uiInfo.uiDC.cursory = 0;
+	
+	_UI_MouseEvent(nx, ny);
+}
+
+/*
+=================
 UI_KeyEvent
 =================
 */

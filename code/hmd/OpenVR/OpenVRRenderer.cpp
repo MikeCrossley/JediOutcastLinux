@@ -274,6 +274,11 @@ void COpenVRRenderer::EndFrame()
 
 		if (mCurrentHmdMode == MENU_QUAD_WORLDPOS)
 		{
+			ControllerEvents();
+
+			vr::VROverlay()->HandleControllerOverlayInteractionAsMouse(m_ulOverlayHandle, m_pDevice->GetTrackedDevices()->GetControllerDeviceId(EHmdController::eController_OpenVR_2));
+			vr::VROverlay()->SetGamepadFocusOverlay(m_ulOverlayHandle);
+
 			vr::Texture_t menuTexture = { (void*)mMenuTextureSet, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
 			vr::VROverlay()->SetOverlayTexture(m_ulOverlayHandle, &menuTexture);
 		}
@@ -328,6 +333,37 @@ void COpenVRRenderer::EndFrame()
 		}
 	}
 	mEyeId = -1;
+}
+
+#include "../../ui/ui_local.h"
+
+void COpenVRRenderer::ControllerEvents()
+{
+	vr::VREvent_t vrEvent;
+	while (vr::VROverlay()->PollNextOverlayEvent(m_ulOverlayHandle, &vrEvent, sizeof(vrEvent)))
+	{
+		switch (vrEvent.eventType)
+		{
+			case vr::VREvent_MouseMove:
+			{
+				int nWidth = SCREEN_WIDTH;
+				int nHeight = SCREEN_HEIGHT;
+
+				_UI_MouseSet(int(vrEvent.data.mouse.x * nWidth), int(vrEvent.data.mouse.y * nHeight));
+			}
+			break;
+			case vr::VREvent_MouseButtonDown:
+			{
+				_UI_KeyEvent(A_MOUSE1, true);
+			}
+			break;
+			case vr::VREvent_MouseButtonUp:
+			{
+				_UI_KeyEvent(A_MOUSE1, false);
+			}
+			break;
+		}
+	}
 }
 
 bool COpenVRRenderer::GetCustomProjectionMatrix(float* rProjectionMatrix, float zNear, float zFar, float fov)
@@ -451,7 +487,7 @@ bool COpenVRRenderer::Get2DViewport(int& rX, int& rY, int& rW, int& rH)
 		return true;
 	}
 
-	float fGuiScale = 0.65f;
+	float fGuiScale = 1.0f;
 
 	rW = mRenderWidth * fGuiScale;
 	rH = mRenderWidth * fGuiScale;
@@ -479,7 +515,6 @@ void COpenVRRenderer::SetCurrentHmdMode(HmdMode mode)
 	if (mode == GAMEWORLD_QUAD_WORLDPOS || mode == MENU_QUAD_WORLDPOS)
 	{
 		vr::VROverlay()->ShowOverlay(m_ulOverlayHandle);
-		vr::VROverlay()->HandleControllerOverlayInteractionAsMouse(m_ulOverlayHandle, m_pDevice->GetTrackedDevices()->GetControllerDeviceId(EHmdController::eController_OpenVR_2));
 	}
 	else
 	{

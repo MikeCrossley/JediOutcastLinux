@@ -17,6 +17,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include "../../code/game/q_shared.h"
+
 #include <openvr.h>
 #include <openvr_capi.h>
 
@@ -47,7 +49,7 @@ namespace OpenVR
 		uint64_t	nButtonsPressed;
 		uint64_t	nButtonsTouched;
 		float		fTriggerValue;
-		//vec2_t		vTouchPad;
+		vec2_t		vTouchPad;
 
 		bool IsPressed(vr::EVRButtonId btn)
 		{
@@ -60,6 +62,8 @@ namespace OpenVR
 		}
 
 		float GetTriggerValue() { return fTriggerValue; }
+
+		float GetTouchpadAxis(int nAxis) { return vTouchPad[nAxis]; }
 	};
 
 class COpenVRInput : public IHmdInput
@@ -74,8 +78,8 @@ public:
 	virtual void Update() override;
 	size_t GetButtonCount() override { return 0; }
 	bool IsButtonPressed(size_t buttonId) override { return false; }
-	virtual size_t GetAxisCount() override { return 0; }
-	float GetAxisValue(size_t axisId) override { return 0.f; }
+	virtual size_t GetAxisCount() override { return 2; }
+	float GetAxisValue(size_t axisId) override;
 	virtual bool PollChangedButton(size_t &rButtonId, bool &pressed);
 	virtual bool PollChangedAxis(size_t &rAxisId, float &axisValue);
 	//~IHmdInput
@@ -89,6 +93,9 @@ private:
 
 	EButtonState				m_CurrentButtonState[eButtonMax];
 	EButtonState				m_PreviousButtonState[eButtonMax];
+
+	float						m_CurrentAxisState[4];
+	float						m_PreviousAxisState[4];
 };
 }
 #endif

@@ -43,6 +43,9 @@ void ViewParamsHmdUtility::UpdateRenderParams(trGlobals_t* trRef, bool isSkyBoxP
                 mViewYaw, 
 				isSkyBoxPortal);
 
+		// easier just to retrieve it from here than recompute in game code
+		ClientHmd::Get()->SetHMDWorldPosition(origin[0], origin[1], origin[2]);
+
         if (matrixCreated)
         {
 			VectorCopy(origin, trRef->viewParms.orient.origin);

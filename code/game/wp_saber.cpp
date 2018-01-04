@@ -5172,6 +5172,7 @@ void WP_SetSaberMove(gentity_t *self, short blocked)
 }
 
 extern void CG_CubeOutline( vec3_t mins, vec3_t maxs, int time, unsigned int color, float alpha );
+extern void CG_Cylinder(vec3_t start, vec3_t end, float radius, vec3_t color);
 void WP_SaberUpdate( gentity_t *self, usercmd_t *ucmd )
 {
 	//float	swap;
@@ -5216,8 +5217,9 @@ void WP_SaberUpdate( gentity_t *self, usercmd_t *ucmd )
 			vec3_t viewaxisWeapon[3];
 			vec3_t viewAnglesWeapon;
 			vec3_t vrR_rot, vrR_pos, pos = { 0 }, rot = { 0 };
-			vec3_t	saberMins = { -3.0f,-3.0f,-3.0f };
-			vec3_t	saberMaxs = { 3.0f,3.0f,3.0f };
+
+			//vec3_t	saberMins = { -fMinSizeTest,-fMinSizeTest,-fMinSizeTest };
+			//vec3_t	saberMaxs = { fMinSizeTest,fMinSizeTest,fMinSizeTest };
 
 			// Set up saber entity to draw
 			saberent->s.eFlags &= ~EF_NODRAW;
@@ -5227,7 +5229,7 @@ void WP_SaberUpdate( gentity_t *self, usercmd_t *ucmd )
 			// Get our hand position/orientation, match to world rotation
 			GameHmd::Get()->GetRightHandOrientation(vrR_rot[PITCH], vrR_rot[YAW], vrR_rot[ROLL]);
 			GameHmd::Get()->GetRightHandPosition(vrR_pos[0], vrR_pos[1], vrR_pos[2]);
-			vrR_rot[YAW] += cg.refdefViewAnglesWeapon[YAW];
+			vrR_rot[YAW] += cg.refdefViewAnglesWeapon[YAW] + 90.f;
 			//vrR_rot[PITCH] += 45.0f; //TODO: Have GameHmd handle transforms for guns vs sabers? Controller grip depends on the headset.
 
 			// Rotate saber to be in front of weapon view at all times
@@ -5269,10 +5271,23 @@ void WP_SaberUpdate( gentity_t *self, usercmd_t *ucmd )
 			// The saber should actually do something
 			cgi_Cvar_Set("g_saberRealisticCombat", "1");
 
-			//reset the mins
-			VectorCopy(saberMins, saberent->mins);
-			VectorCopy(saberMaxs, saberent->maxs);
-			saberent->contents = 0;
+			// More accurate saber bbox
+			float fBladeWidth = 0.1f;
+			vec3_t	saberOrg;
+			vec3_t	saberTip;
+			VectorMA(self->client->renderInfo.muzzlePoint, self->client->ps.saberLength, self->client->renderInfo.muzzleDir, saberTip);
+			VectorMA(self->client->renderInfo.muzzlePoint, 0.f, self->client->renderInfo.muzzleDir, saberOrg);
+
+			saberent->mins[0] = min(saberOrg[0], saberTip[0]) - saberOrg[0] - fBladeWidth;
+			saberent->mins[1] = min(saberOrg[1], saberTip[1]) - saberOrg[1] - fBladeWidth;
+			saberent->mins[2] = min(saberOrg[2], saberTip[2]) - saberOrg[2] - fBladeWidth;
+
+			saberent->maxs[0] = max(saberOrg[0], saberTip[0]) - saberOrg[0] + fBladeWidth;
+			saberent->maxs[1] = max(saberOrg[1], saberTip[1]) - saberOrg[1] + fBladeWidth;
+			saberent->maxs[2] = max(saberOrg[2], saberTip[2]) - saberOrg[2] + fBladeWidth;
+
+			//saberent->contents = 0;
+			saberent->contents = self->client->ps.saberActive ? CONTENTS_LIGHTSABER : 0;
 			saberent->clipmask = MASK_SOLID | CONTENTS_LIGHTSABER;
 
 			// remove the ghoul2 sabre model on the player
@@ -5281,6 +5296,9 @@ void WP_SaberUpdate( gentity_t *self, usercmd_t *ucmd )
 				gi.G2API_RemoveGhoul2Model(self->ghoul2, self->weaponModel);
 				self->weaponModel = -1;
 			}
+
+
+			//CG_CubeOutline(saberent->absmin, saberent->absmax, 50, WPDEBUG_SaberColor(self->client->ps.saberColor), 1);
 
 			// Don't do anything else with our saber, we're good here.
 			return;

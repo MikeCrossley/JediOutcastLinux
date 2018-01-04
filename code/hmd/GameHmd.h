@@ -7,6 +7,8 @@
 #ifndef GAMEHMD_H
 #define GAMEHMD_H
 
+#include "../game/q_shared.h"
+
 class GameHmd
 {
 public:

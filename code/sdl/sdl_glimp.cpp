@@ -1697,12 +1697,19 @@ static void HandleEvents(void)
 			QueKeyEvent( 0, SE_KEY, A_JOY0 + buttonId, pressed ? qtrue : qfalse, 0, NULL );
 		}
 
+#ifndef USE_OPENVR
 		size_t axisId;
 		float axisValue;
 		while (pHmdInput->PollChangedAxis(axisId, axisValue))
 		{
 			IN_GameControllerMove(axisId, axisValue * 32768);
 		}
+#else
+		for (int i = 0; i < pHmdInput->GetAxisCount(); i++)
+		{
+			IN_GameControllerMove(i, pHmdInput->GetAxisValue(i) *32768);
+		}
+#endif
 
 	}
 #endif
