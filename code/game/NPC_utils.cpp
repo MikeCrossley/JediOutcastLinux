@@ -62,6 +62,7 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 		if (ent->s.number == 0)
 		{
 			GameHmd::Get()->GetPosition(point[0], point[1], point[2]);
+			point[2] -= 8;
 		}
 		else
 		{
@@ -106,6 +107,7 @@ void CalcEntitySpot ( const gentity_t *ent, const spot_t spot, vec3_t point )
 		if (ent->s.number == 0)
 		{
 			GameHmd::Get()->GetPosition(point[0], point[1], point[2]);
+			point[2] -= 8;
 		}
 		else
 		{

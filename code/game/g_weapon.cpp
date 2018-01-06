@@ -3489,14 +3489,14 @@ void FireWeapon( gentity_t *ent, qboolean alt_fire )
 	}
 
 	ent->alt_fire = alt_fire;
-	// [shinyquagsire23] Fire in the direction that the weapon is actually facing
-	if (GameHmd::Get()->HasHands())
+	// HMD :: Fire the weapon in the direction it is currently pointing for players
+	if (ent->s.number == 0 && GameHmd::Get()->HasHands())
 	{
 		VectorCopy(ent->client->renderInfo.muzzlePoint, muzzle);
 		VectorCopy(ent->client->renderInfo.muzzleDir, forward);
 		VectorCopy(ent->client->renderInfo.muzzleDir, ent->client->ps.viewangles);
 		MakeNormalVectors(forward, vright, up);
-	}
+	} // ~HMD
 	else
 	{
 		CalcMuzzlePoint(ent, forward, vright, up, muzzle, 0);

@@ -5272,7 +5272,7 @@ void WP_SaberUpdate( gentity_t *self, usercmd_t *ucmd )
 			cgi_Cvar_Set("g_saberRealisticCombat", "1");
 
 			// More accurate saber bbox
-			float fBladeWidth = 0.1f;
+			float fBladeWidth = 1.0f;
 			vec3_t	saberOrg;
 			vec3_t	saberTip;
 			VectorMA(self->client->renderInfo.muzzlePoint, self->client->ps.saberLength, self->client->renderInfo.muzzleDir, saberTip);

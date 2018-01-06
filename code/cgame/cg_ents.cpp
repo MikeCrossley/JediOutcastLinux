@@ -1520,7 +1520,7 @@ Ghoul2 Insert End
 		return;
 	}
 
-	// [shinyquagsire23] We can't interpolate VR objects, override our saber entity directly
+	// HMD
 	if (cent->currentState.number == cg_entities[0].gent->client->ps.saberEntityNum && cg_entities[0].gent->client->ps.saberEntityState == SES_OVERRIDE)
 	{
 		vec3_t viewaxisWeapon[3];
@@ -1560,6 +1560,7 @@ Ghoul2 Insert End
 
 		return;
 	}
+	// ~HMD
 	
 	//FIXME: prediction on clients in timescale results in jerky positional translation
 	if ( cent->interpolate )

@@ -1,7 +1,6 @@
 #include "OpenVRInput.h"
 #include "OpenVRDevice.h"
 
-
 #include <math.h>
 #include <iostream>
 #include <algorithm>
@@ -77,7 +76,7 @@ bool COpenVRInput::PollChangedButton(size_t &rButtonId, bool &pressed)
 
 float COpenVRInput::GetAxisValue(size_t axisId)
 {
-	SControllerState &state = GetControllerState(eController_OpenVR_1);
+	SControllerState &state = GetControllerState(eController_OpenVR_2);
 
 	float fAxisValue = state.GetTouchpadAxis(axisId);
 
